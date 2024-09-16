@@ -1,15 +1,11 @@
 import numpy as np
-import pandas as pd
-
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import PolynomialFeatures,StandardScaler
+from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import GridSearchCV
-
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-
 from Interfaces import MLClassifierInterface
 
 class LogisticFactory(MLClassifierInterface):
@@ -22,10 +18,10 @@ class LogisticFactory(MLClassifierInterface):
                 'logisticregression__class_weight': [None,'balanced'] # class weights
                 }
 
-    def create_model(self, pipeline=False, param_grid=None, scaler=StandardScaler(), **kwargs):
+    def create_model(self, param_grid:dict=None, **kwargs):
 
-        if pipeline is False: # use a basic model
-            self.model = LogisticRegression(**kwargs)  #! needs validation of kwargs
+        if self.context.is_pipeline is False: # use a basic model
+            self.model = LogisticRegression(**kwargs) #! needs validation of kwargs
 
         else: # use the polyfeatures-scaler-estimator pipeline in a gridsearch
             if param_grid is None: # use the default param_grid
@@ -33,7 +29,7 @@ class LogisticFactory(MLClassifierInterface):
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
-                scaler, # StandardScaler() or MinMaxScaler() or RobustScaler()
+                self.context.scaler, # StandardScaler() or MinMaxScaler() or RobustScaler()
                 LogisticRegression(**kwargs)
             )
 
@@ -55,15 +51,15 @@ class SVCFactory(MLClassifierInterface):
         'svc__class_weight': [None, 'balanced']
     }
 
-    def create_model(self, pipeline=False, param_grid=None, scaler=StandardScaler(), **kwargs):
-        if not pipeline:
+    def create_model(self, param_grid:dict=None, **kwargs):
+        if self.context.is_pipeline is False:
             self.model = SVC(**kwargs) #! needs validation of kwargs
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
 
             pipeline = make_pipeline(
-                scaler,
+                self.context.scaler,
                 SVC(**kwargs)
             )
 
@@ -84,15 +80,15 @@ class RandomForestFactory(MLClassifierInterface):
         'randomforestclassifier__class_weight': [None, 'balanced']
     }
 
-    def create_model(self, pipeline=False, param_grid=None, scaler=StandardScaler(), **kwargs):
-        if not pipeline:
-            self.model = RandomForestClassifier(**kwargs)
+    def create_model(self, param_grid:dict=None, **kwargs):
+        if self.context.is_pipeline is False:
+            self.model = RandomForestClassifier(**kwargs) #! needs validation of kwargs
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
 
             pipeline = make_pipeline(
-                scaler,
+                self.context.scaler,
                 RandomForestClassifier(**kwargs)
             )
 
@@ -113,16 +109,16 @@ class KNNFactory(MLClassifierInterface):
         'kneighborsclassifier__metric': ['manhattan', 'euclidean', 'minkowski', 'chebyshev', 'mahalanobis', 'seuclidean']
     }
 
-    def create_model(self, pipeline=False, param_grid=None, scaler=StandardScaler(), **kwargs):
-        if not pipeline:
-            self.model = KNeighborsClassifier(**kwargs)
+    def create_model(self, param_grid:dict=None, **kwargs):
+        if self.context.is_pipeline is False:
+            self.model = KNeighborsClassifier(**kwargs) #! needs validation of kwargs
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
-                scaler,
+                self.context.scaler,
                 KNeighborsClassifier(**kwargs)
             )
 
@@ -142,15 +138,15 @@ class GradientBoostingFactory(MLClassifierInterface):
         'gradientboostingclassifier__max_depth': [3, 5, 7]
     }
 
-    def create_model(self, pipeline=False, param_grid=None, scaler=StandardScaler(), **kwargs):
-        if not pipeline:
-            self.model = GradientBoostingClassifier(**kwargs)
+    def create_model(self, param_grid:dict=None, **kwargs):
+        if self.context.is_pipeline is False:
+            self.model = GradientBoostingClassifier(**kwargs) #! needs validation of kwargs
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
 
             pipeline = make_pipeline(
-                scaler,
+                self.context.scaler,
                 GradientBoostingClassifier(**kwargs)
             )
 
