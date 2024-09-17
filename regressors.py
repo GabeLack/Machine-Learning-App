@@ -4,7 +4,7 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LinearRegression, ElasticNet
 from sklearn.svm import SVR
-from Interfaces import MLRegressorInterface
+from interfaces import MLRegressorInterface
 
 class LinearFactory(MLRegressorInterface):
     default_param_grid = {

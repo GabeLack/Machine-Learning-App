@@ -97,8 +97,8 @@ class MLRegressorInterface(MLInterface):
         rmse = np.sqrt(mean_squared_error(self.y_test, self.y_pred))
         r2 = r2_score(self.y_test, self.y_pred)
 
-        # Get the name of the specific model
-        model_name = self.model.__class__.__name__
+        # Get the name of the specific estimator model
+        model_name = self.model.estimator.steps[-1][0]
 
         # Save metrics to the regression_metrics DataFrame
         data = {'type': model_name,

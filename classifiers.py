@@ -6,7 +6,7 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from Interfaces import MLClassifierInterface
+from interfaces import MLClassifierInterface
 
 class LogisticFactory(MLClassifierInterface):
     default_param_grid = {
