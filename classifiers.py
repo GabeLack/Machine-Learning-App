@@ -6,7 +6,13 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout
+from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
+
 from interfaces import MLClassifierInterface
+
 
 class LogisticFactory(MLClassifierInterface):
     default_param_grid = {
@@ -157,3 +163,42 @@ class GradientBoostingFactory(MLClassifierInterface):
                 cv=10,
                 scoring="accuracy"
             )
+
+class ANNClassifierFactory(MLClassifierInterface):
+    default_param_grid = {
+        'batch_size': [16, 32, 64],
+        'epochs': [50, 100, 200],
+        'optimizer': ['adam', 'rmsprop'],
+        'dropout_rate': [0.0, 0.2, 0.5],
+        'neurons': [32, 64, 128]
+    }
+
+    def create_model(self, param_grid: dict = None, **kwargs):
+        if self.context.is_pipeline is False:
+            self.model = KerasClassifier(build_fn=self.build_model, **kwargs)
+        else:
+            if param_grid is None:
+                param_grid = self.default_param_grid
+
+            pipeline = make_pipeline(
+                self.context.scaler,
+                KerasClassifier(build_fn=self.build_model, **kwargs)
+            )
+
+            self.model = GridSearchCV(
+                pipeline,
+                param_grid,
+                n_jobs=4,
+                cv=10,
+                scoring="accuracy"
+            )
+
+    def build_model(self, optimizer='adam', dropout_rate=0.0, neurons=64):
+        model = Sequential()
+        model.add(Dense(neurons, input_dim=self.context.X_train.shape[1], activation='relu'))
+        model.add(Dropout(dropout_rate))
+        model.add(Dense(neurons, activation='relu'))
+        model.add(Dropout(dropout_rate))
+        model.add(Dense(self.context.y_train.shape[1], activation='softmax'))
+        model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+        return model
