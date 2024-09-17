@@ -2,7 +2,11 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from joblib import dump
 import pandas as pd
+import matplotlib.pyplot as plt
+
 from plotting import Plotting
+from context import ModelContext
+from factory import ModelFactory, ModelType, ProblemType
 
 class MLApp:
     plots = []  # To store all plots
@@ -45,7 +49,7 @@ class MLApp:
         tk.Button(self.root, text="Initialize Models", command=self.initialize_models).pack()
 
         # Get results and show plots
-        tk.Button(self.root, text="Show Results", command=self.plot_results).pack()
+        tk.Button(self.root, text="Get and plot Results", command=self.plot_results).pack()
 
         # Show recommended model
         tk.Button(self.root, text="Recommended Model", command=self.recommended_model).pack()
@@ -65,16 +69,29 @@ class MLApp:
         file_path = self.file_path.get()
         if file_path:
             df = pd.read_csv(file_path)
-            columns = df.columns.tolist()
-            messagebox.showinfo("Column List", "\n".join(columns))
+            column_list = list(df.columns)
+
+            # Check if an OptionMenu already exists
+            if hasattr(self, 'target_option_menu'):
+                tk.messagebox.showwarning("Warning", "Target column selection can only be done once.")
+                return
+
+            # Create a new OptionMenu
+            target_column = tk.StringVar(value=column_list[0])
+            tk.Label(self.root, text="Choose target column:").pack()
+            option_menu = tk.OptionMenu(self.root, target_column, *column_list)
+            option_menu.pack()
+
+            # Store the OptionMenu reference in the root
+            self.target_option_menu = option_menu
+            self.target_column = target_column
         else:
-            messagebox.showerror("Error", "Please select a CSV file first.")
+            tk.messagebox.showerror("Error", "Please select a CSV file first.")
 
     def initialize_models(self):
         # Validate and initialize models
         if self.data_type.get() and self.file_path.get() and self.target_column.get():
             df = pd.read_csv(self.file_path.get())
-            from context import ModelContext
             context = ModelContext(
                 df=df,
                 target_column=self.target_column.get(),
@@ -87,7 +104,7 @@ class MLApp:
             except UserWarning as e:
                 # Ask the user about fixing/dropping missing values
                 response = tk.messagebox.askquestion("Missing Values",
-                            f"{str(e)}\n\nDo you want to fix/drop missing values?")
+                            f"{str(e)}\n\nDo you want to fix/drop missing value(s)?")
                 if response == 'yes':
                     # Reset the index after dropping rows with missing values
                     df.dropna(inplace=True)
@@ -133,7 +150,6 @@ class MLApp:
             self.output_text.insert(tk.END, "Please select data type, file path, and target column.\n")
 
     def get_models(self, context):
-        from factory import ModelFactory, ModelType, ProblemType
         factory = ModelFactory()
         if self.data_type.get() == "regression":
             return [
@@ -143,7 +159,7 @@ class MLApp:
             ]
         else:
             return [
-                factory.create_model(ModelType.LOGISTIC, ProblemType.CLASSIFICATION, context),
+                #factory.create_model(ModelType.LOGISTIC, ProblemType.CLASSIFICATION, context),
                 factory.create_model(ModelType.SVC, ProblemType.CLASSIFICATION, context),
                 factory.create_model(ModelType.RANDOMFOREST, ProblemType.CLASSIFICATION, context),
                 factory.create_model(ModelType.KNEARESTNEIGHBORS, ProblemType.CLASSIFICATION, context),
@@ -167,13 +183,14 @@ class MLApp:
         else:
             self.output_text.insert(tk.END, "Please initialize models first.\n")
 
-    def process_metrics(self):
+    def process_metrics(self) -> pd.DataFrame:
         # Process metrics
         if hasattr(self, 'factories'):
             metrics_filename = "metrics.csv"
             for factory in self.factories:
                 factory.metrics(metrics_filename)
             self.output_text.insert(tk.END, "Metrics processed successfully.\n")
+            return pd.read_csv(metrics_filename)
         else:
             self.output_text.insert(tk.END, "Please initialize models first.\n")
 
@@ -183,16 +200,24 @@ class MLApp:
         # Check if the models have been initialized
         if hasattr(self, 'factories'):
             self.train_models()
+            self.progress_bar.step(25)
             self.predict_models()
-            self.process_metrics()
+            self.progress_bar.step(25)
+            metrics_df = self.process_metrics()
+            self.progress_bar.step(25)
 
-            # Plot results
-            fig1 = Plotting.corr_w_test_score_plot(self.factories[0].model.cv_results_)
-            self.plots.append(fig1)
-            fig2 = Plotting.plot_confusion_matrix(self.context.y_test, self.factories, self.predictions)
-            self.plots.append(fig2)
-            fig3 = Plotting.plot_residuals(self.context.y_test, self.factories, self.predictions)
-            self.plots.append(fig3)
+            # Display the metrics DataFrame in the Text widget
+            metrics_str = metrics_df.to_string(index=False)
+            self.output_text.insert(tk.END, f"{metrics_str}\n")
+
+            # Specific plots based on data type
+            if self.data_type.get() == "regression":
+                fig = Plotting.plot_residuals(self.context.y_test, self.factories, self.predictions)
+                self.plots.append(fig)
+            else:
+                fig = Plotting.plot_confusion_matrix(self.context.y_test, self.factories, self.predictions)
+                self.plots.append(fig)
+            self.progress_bar.step(25)
 
             for fig in self.plots:
                 fig.show()
@@ -235,13 +260,30 @@ class MLApp:
         else:
             self.output_text.insert(tk.END, "Please initialize models first.\n")
 
+    def get_best_model(self, model_name: str):
+        # Get the best model based on the model name
+        if hasattr(self, 'factories'):
+            for factory in self.factories:
+                if factory.model.estimator.steps[-1][0] == model_name:
+                    return factory.model.best_estimator_
+        else:
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
+
     def recommended_model(self):
         # Recommend the best-performing model based on metrics
         if hasattr(self, 'factories'):
+            # Get the best model type and its best parameters
             best_model_type = self.get_best_type()
             best_params = self.get_best_params(best_model_type)
+
+            # Display the recommended model and its best parameters
             self.output_text.insert(tk.END, f"Recommended Model: {best_model_type}\n")
             self.output_text.insert(tk.END, f"Best Parameters: {best_params}\n")
+
+            # Plot the correlation with mean test score for parameter columns
+            cv_results = self.get_cv_results(best_model_type)
+            fig = Plotting.corr_w_test_score_plot(cv_results)
+            plt.show()
         else:
             self.output_text.insert(tk.END, "Please initialize models first.\n")
 
@@ -249,7 +291,7 @@ class MLApp:
         # Allow the user to choose from a list of available models
         if hasattr(self, 'factories'):
             # Get the names of all available models
-            model_names = [model.estimator.steps[-1][0] for model in self.factories]
+            model_names = [factory.model.estimator.steps[-1][0] for factory in self.factories]
 
             # Create a variable to store the selected model type
             selected_model_type = tk.StringVar(self.root)
@@ -265,19 +307,6 @@ class MLApp:
 
             # Get the selected model type
             selected_model_type = selected_model_type.get()
-
-            # Get the best parameters for the selected model type
-            best_params = self.get_best_params(selected_model_type)
-
-            # Display the best parameters in the text box
-            self.output_text.insert(tk.END, f"Best Parameters for {selected_model_type}:\n{best_params}\n\n")
-
-            # Get cross-validation results for the selected model type
-            cv_results = self.get_cv_results(selected_model_type)
-
-            # Plot the correlation with mean test score for parameter columns
-            fig = Plotting.corr_w_test_score_plot(cv_results)
-            plt.show()
 
             # Ask the user for the file path and name
             file_path = filedialog.asksaveasfilename(defaultextension=".joblib",

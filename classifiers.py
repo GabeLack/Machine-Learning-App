@@ -30,7 +30,7 @@ class LogisticFactory(MLClassifierInterface):
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
                 self.context.scaler, # StandardScaler() or MinMaxScaler() or RobustScaler()
-                LogisticRegression(**kwargs)
+                LogisticRegression(**kwargs, max_iter=1000) #! needs validation of kwargs
             )
 
             self.model = GridSearchCV(
@@ -60,7 +60,7 @@ class SVCFactory(MLClassifierInterface):
 
             pipeline = make_pipeline(
                 self.context.scaler,
-                SVC(**kwargs)
+                SVC(**kwargs, max_iter=1000) #! needs validation of kwargs
             )
 
             self.model = GridSearchCV(

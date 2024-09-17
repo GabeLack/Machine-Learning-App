@@ -3,7 +3,7 @@ import pandas as pd
 from abc import ABC, abstractmethod
 from sklearn.metrics import (mean_absolute_error, mean_squared_error, r2_score,
                              classification_report, accuracy_score)
-from factory import ModelContext
+from context import ModelContext
 
 
 class MLInterface(ABC):
@@ -54,7 +54,7 @@ class MLClassifierInterface(MLInterface):
         f1_score_ = report_dict['macro avg']['f1-score']
 
         # Get the name of the specific model
-        model_name = self.model.__class__.__name__
+        model_name = self.model.estimator.steps[-1][0]
 
         # Calculate accuracy separately
         accuracy = accuracy_score(self.y_test, self.y_pred)

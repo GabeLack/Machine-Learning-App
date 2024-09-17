@@ -12,9 +12,6 @@ from sklearn.linear_model import (LinearRegression, ElasticNet, Ridge, Lasso, Lo
 from sklearn.svm import SVR, SVC
 from sklearn.neighbors import KNeighborsClassifier
 
-#! future additions?
-from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier
-
 from sklearn.metrics import (mean_absolute_error, mean_squared_error, r2_score, f1_score,
                              classification_report, accuracy_score, confusion_matrix,
                              precision_score, recall_score, ConfusionMatrixDisplay)
