@@ -1,40 +1,16 @@
-### APP section ###
-
-# Ask if this data will be determined via regression or classification.
-
-# Ask for filepath.
-
-# Show column list, user makes choice of target column.
-
-# Validate if target column is OK with the choice of regression or classification when initialized.
-# Raises error if incorrect ML type with target column.
-# Raises error and prompts for correction if NaN and/or feature columns are object dtype.
-
-# MLclass init with these inputs, then get results of each model.
-# Show metrics of each model.
-# Show resid error plots if regression, conf matrix if classification.
-
-# Give recommended model based on r2 score (regression) and accuracy or f1 score (classification)
-# Show correlations of mean test score on recommended model with parameters if user wants to know
-# which parameters were the most important.
-
-# Show best params of recommended model
-
-# Show plot of corr with mean test score on best advised model type.
-
 import tkinter as tk
-from tkinter import ttk
-from tkinter import filedialog
-import pandas as pd
-from mlclass import MLClass
-import matplotlib.pyplot as plt
-import io
+from tkinter import filedialog, messagebox, ttk
 from joblib import dump
-import time
+import pandas as pd
+import matplotlib.pyplot as plt
+
+from plotting import Plotting
+from context import ModelContext
+from factory import ModelFactory, ModelType, ProblemType
 
 class MLApp:
-    ml_class = None
     plots = []  # To store all plots
+    predictions = []  # To store all predictions
 
     def __init__(self):
         self.root = tk.Tk()
@@ -70,15 +46,15 @@ class MLApp:
         tk.Button(self.root, text="Show Column List", command=self.show_column_list).pack()
 
         # Validate and initialize MLClass
-        tk.Button(self.root, text="Initialize MLClass", command=self.initialize_ml_class).pack()
+        tk.Button(self.root, text="Initialize Models", command=self.initialize_models).pack()
 
         # Get results and show plots
-        tk.Button(self.root, text="Show Results", command=self.show_results).pack()
+        tk.Button(self.root, text="Get and plot Results", command=self.plot_results).pack()
 
-        # Show column list and choose target column
+        # Show recommended model
         tk.Button(self.root, text="Recommended Model", command=self.recommended_model).pack()
 
-        # Show column list and choose target column
+        # Choose model
         tk.Button(self.root, text="Choose Model", command=self.choose_model).pack()
 
         # Close button
@@ -110,166 +86,222 @@ class MLApp:
             self.target_option_menu = option_menu
             self.target_column = target_column
         else:
-            tk.messagebox.showerror("Error", "Please select a CSV file.")
+            tk.messagebox.showerror("Error", "Please select a CSV file first.")
 
-    def initialize_ml_class(self):
-        # Validate and initialize MLClass
+    def initialize_models(self):
+        # Validate and initialize models
         if self.data_type.get() and self.file_path.get() and self.target_column.get():
             df = pd.read_csv(self.file_path.get())
+            context = ModelContext(
+                df=df,
+                target_column=self.target_column.get(),
+                is_pipeline=True
+            )
+
+            # Check for missing values
             try:
-                self.ml_class = MLClass(regression_ml=(self.data_type.get() == "regression"),
-                                df=df, target_column=self.target_column.get())
+                context.check_missing()
+            except UserWarning as e:
+                # Ask the user about fixing/dropping missing values
+                response = tk.messagebox.askquestion("Missing Values",
+                            f"{str(e)}\n\nDo you want to fix/drop missing value(s)?")
+                if response == 'yes':
+                    # Reset the index after dropping rows with missing values
+                    df.dropna(inplace=True)
+                    df.reset_index(drop=True, inplace=True)
+                    # Reinitialize with corrected df
+                    context = ModelContext(
+                        df=df,
+                        target_column=self.target_column.get(),
+                        is_pipeline=True
+                    )
+                else:
+                    # Ask user to choose new file
+                    self.browse_file()
+                    return  # Stop execution here if the user chooses a new file
 
-                # Check for missing values
-                try:
-                    self.ml_class.check_missing()
-                except UserWarning as e:
-                    # Ask the user about fixing/dropping missing values
-                    response = tk.messagebox.askquestion("Missing Values",
-                                f"{str(e)}\n\nDo you want to fix/drop missing values?")
-                    if response == 'yes':
-                        # Reset the index after dropping rows with missing values
-                        df.dropna(inplace=True)
-                        df.reset_index(drop=True, inplace=True)
-                        # Reinitialize with corrected df
-                        self.ml_class = MLClass(regression_ml=(self.data_type.get() == "regression"),
-                                                df=df,target_column=self.target_column.get())
-                    else:
-                        # Ask user to choose new file
-                        self.browse_file()
-                        return  # Stop execution here if the user chooses a new file
+            # Check for object dtype columns
+            try:
+                context.check_feature_types()
+            except UserWarning as e:
+                # Ask the user about using get_dummies on object feature columns
+                response = tk.messagebox.askquestion("Object Feature Columns",
+                            f"{str(e)}\n\nDo you want to use get_dummies on object feature columns?")
+                if response == 'yes':
+                    # run get dummies on columns other than target column
+                    df = pd.get_dummies(df, columns=[col for col in df.columns if \
+                                                     col != self.target_column.get()],
+                                        drop_first=True, dtype='int')
+                    context = ModelContext(
+                        df=df,
+                        target_column=self.target_column.get(),
+                        is_pipeline=True
+                    )
+                else:
+                    # Ask user to choose new file
+                    self.browse_file()
+                    return
 
-                # Check for object dtype columns
-                try:
-                    self.ml_class.check_feature_types()
-                except UserWarning as e:
-                    # Ask the user about using get_dummies on object feature columns
-                    response = tk.messagebox.askquestion("Object Feature Columns",
-                                f"{str(e)}\n\nDo you want to use get_dummies on object feature columns?")
-                    if response == 'yes':
-                        # run get dummies on columns other than target column
-                        df = pd.get_dummies(df, columns=[col for col in df.columns if \
-                                                         col != self.target_column.get()],
-                                            drop_first=True, dtype='int')
-                        self.ml_class = MLClass(regression_ml=(self.data_type.get() == "regression"),
-                                    df=df, target_column=self.target_column.get())
-                    else:
-                        # Ask user to choose new file
-                        self.browse_file()
-                        return
-
-                tk.messagebox.showinfo("Success", "MLClass initialized successfully.")
-            except ValueError as e:
-                tk.messagebox.showerror("Error", str(e))
+            # Initialize models using the new get_models method
+            self.factories = self.get_models(context)
+            self.context = context
+            self.output_text.insert(tk.END, "Models initialized successfully.\n")
         else:
-            tk.messagebox.showerror("Error", "Please provide all required inputs.")
+            self.output_text.insert(tk.END, "Please select data type, file path, and target column.\n")
 
-    def show_results(self):
-        # Configure the progress bar for determinate mode
+    def get_models(self, context):
+        factory = ModelFactory()
+        if self.data_type.get() == "regression":
+            return [
+                factory.create_model(ModelType.LINEAR, ProblemType.REGRESSION, context),
+                factory.create_model(ModelType.ELASTICNET, ProblemType.REGRESSION, context),
+                factory.create_model(ModelType.SVR, ProblemType.REGRESSION, context),
+                factory.create_model(ModelType.ANNREGRESSOR, ProblemType.REGRESSION, context)
+            ]
+        else:
+            return [
+                factory.create_model(ModelType.LOGISTIC, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.SVC, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.RANDOMFOREST, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.KNEARESTNEIGHBORS, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.GRADIENTBOOSTING, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.ANNCLASSIFIER, ProblemType.CLASSIFICATION, context)
+            ]
+
+    def train_models(self):
+        # Train the models
+        if hasattr(self, 'factories'):
+            for factory in self.factories:
+                factory.train_model()
+            self.output_text.insert(tk.END, "Models trained successfully.\n")
+        else:
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
+
+    def predict_models(self):
+        # Predict using the models
+        if hasattr(self, 'factories'):
+            self.predictions = [factory.predict() for factory in self.factories]
+            self.output_text.insert(tk.END, "Predictions made successfully.\n")
+        else:
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
+
+    def process_metrics(self) -> pd.DataFrame:
+        # Process metrics
+        if hasattr(self, 'factories'):
+            metrics_filename = "metrics.csv"
+            for factory in self.factories:
+                factory.metrics(metrics_filename)
+            self.output_text.insert(tk.END, "Metrics processed successfully.\n")
+            return pd.read_csv(metrics_filename)
+        else:
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
+
+    def plot_results(self):
         self.progress_bar.config(mode="determinate", maximum=100, value=0)
 
-        # Get results and show plots
-        if hasattr(self, 'ml_class'):
-            # Capture printed output to display in the app
-            printed_output = io.StringIO()
+        # Check if the models have been initialized
+        if hasattr(self, 'factories'):
+            self.train_models()
+            self.progress_bar.step(25)
+            self.predict_models()
+            self.progress_bar.step(25)
+            metrics_df = self.process_metrics()
+            self.progress_bar.step(25)
 
-            total_steps = 0
+            # Display the metrics DataFrame in the Text widget
+            metrics_str = metrics_df.to_string(index=False)
+            self.output_text.insert(tk.END, f"{metrics_str}\n")
 
-            start_time = time.time()  # Record the start time
-
-            if self.ml_class.regression_ml:
-                # Regression methods
-                regression_methods = [
-                    self.ml_class.regression_lir,
-                    self.ml_class.regression_ridge,
-                    self.ml_class.regression_lasso,
-                    self.ml_class.regression_elasticnet,
-                    self.ml_class.regression_svr
-                ]
-                total_steps += len(regression_methods)
-
-                for method in regression_methods:
-                    # Perform regression method
-                    method()
-                    # Increment progress bar
-                    self.progress_bar.step(100 / total_steps)
-                    # Update the window
-                    self.root.update()
-
-                # Plot and store residual errors for all regression models
-                plot = self.ml_class.regression_plot_resid()
+            # Specific plots based on data type
+            if self.data_type.get() == "regression":
+                fig = Plotting.plot_residuals(self.context.y_test, self.factories, self.predictions)
+                self.plots.append(fig)
             else:
-                # Classification methods
-                classification_methods = [
-                    self.ml_class.classification_lor,
-                    self.ml_class.classification_knn,
-                    self.ml_class.classification_svc
-                ]
-                total_steps += len(classification_methods)
+                fig = Plotting.plot_confusion_matrix(self.context.y_test, self.factories, self.predictions)
+                self.plots.append(fig)
+            self.progress_bar.step(25)
 
-                for method in classification_methods:
-                    # Perform classification method
-                    method()
-                    # Increment progress bar
-                    self.progress_bar.step(100 / total_steps)
-                    # Update the window
-                    self.root.update()
+            for fig in self.plots:
+                fig.show()
 
-                plot = self.ml_class.classification_plot_conf()
-
-            # Print cumulative metric DataFrames
-            metrics_str = str(self.ml_class.metrics)
-            print(metrics_str, file=printed_output)
-
-            # Get the captured printed content
-            printed_output = printed_output.getvalue()
-
-            # Display the figure containing subplots
-            plt.show(block=False)  # Show the plot without blocking
-
-            # Display the printed output in the app
-            self.output_text.insert(tk.END, printed_output)
-
-            end_time = time.time()  # Record the end time
-            elapsed_time = end_time - start_time
-            self.output_text.insert(tk.END, f"\n\nExecution Time: {elapsed_time:.2f} seconds\n")
+            self.output_text.insert(tk.END, "Results plotted successfully.\n")
         else:
-            tk.messagebox.showerror("Error", "Please initialize MLClass first.")
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
 
         # Stop the progress bar when the process is done
         self.progress_bar.stop()
 
-    def recommended_model(self):
-        # After show results, recommend the best-performing model based on metrics
-        if hasattr(self, 'ml_class'):
-            # Get the recommended model type
-            recommended_model_type = self.ml_class.get_best_type()['type'].iloc[0]
+    def get_best_type(self) -> str:
+        # Get the best model type based on the data type
+        metrics_filename = "metrics.csv"
+        metrics_df = pd.read_csv(metrics_filename)  # Read the metrics from the CSV file
 
-            # Display the recommended model type in the text box
-            self.output_text.insert(tk.END, f"\nRecommended Best-Performing Model Type: {recommended_model_type}\n")
-
-            # Display the best parameters of the recommended model
-            best_params = self.ml_class.get_best_params(recommended_model_type)
-            self.output_text.insert(tk.END, f"Best Parameters for {recommended_model_type}:\n{best_params}\n\n")
-
-            # Plot the correlation with mean test score for parameter columns for the recommended model
-            self.ml_class.corr_w_test_score_plot(recommended_model_type)
+        # Determine the best model based on the data type
+        if self.data_type.get() == "regression":
+            best_model = metrics_df.loc[metrics_df['r2'].idxmax()]
         else:
-            tk.messagebox.showerror("Error", "Please initialize MLClass first.")
+            best_model = metrics_df.loc[metrics_df['accuracy'].idxmax()]
+
+        return best_model['type']
+
+    def get_best_params(self, model_name: str) -> dict:
+        # Get the best hyperparameters for a specific model
+        if hasattr(self, 'factories'):
+            for factory in self.factories:
+                if factory.model.estimator.steps[-1][0] == model_name:
+                    return factory.model.best_params_
+        else:
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
+
+    def get_cv_results(self, model_name: str) -> dict:
+        # Get the best hyperparameters for a specific model
+        if hasattr(self, 'factories'):
+            for factory in self.factories:
+                if factory.model.estimator.steps[-1][0] == model_name:
+                    return factory.model.cv_results_
+        else:
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
+
+    def get_best_model(self, model_name: str):
+        # Get the best model based on the model name
+        if hasattr(self, 'factories'):
+            for factory in self.factories:
+                if factory.model.estimator.steps[-1][0] == model_name:
+                    return factory.model.best_estimator_
+        else:
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
+
+    def recommended_model(self):
+        # Recommend the best-performing model based on metrics
+        if hasattr(self, 'factories'):
+            # Get the best model type and its best parameters
+            best_model_type = self.get_best_type()
+            best_params = self.get_best_params(best_model_type)
+
+            # Display the recommended model and its best parameters
+            self.output_text.insert(tk.END, f"Recommended Model: {best_model_type}\n")
+            self.output_text.insert(tk.END, f"Best Parameters: {best_params}\n")
+
+            # Plot the correlation with mean test score for parameter columns
+            cv_results = self.get_cv_results(best_model_type)
+            fig = Plotting.corr_w_test_score_plot(cv_results)
+            plt.show()
+        else:
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
 
     def choose_model(self):
-        # After show results, keep those boxes and plots visible, let the user pick from a list of model types
-        if hasattr(self, 'ml_class'):
-            # Get a list of available model types
-            model_types = self.ml_class.REGRESSIONS if self.ml_class.regression_ml else self.ml_class.CLASSIFICATIONS
+        # Allow the user to choose from a list of available models
+        if hasattr(self, 'factories'):
+            # Get the names of all available models
+            model_names = [factory.model.estimator.steps[-1][0] for factory in self.factories]
 
             # Create a variable to store the selected model type
             selected_model_type = tk.StringVar(self.root)
-            selected_model_type.set(model_types[0])  # Set the default value
+            selected_model_type.set(model_names[0])  # Set the default value
 
             # Create an OptionMenu to choose the model type
             tk.Label(self.root, text="Choose Model Type:").pack()
-            model_type_menu = tk.OptionMenu(self.root, selected_model_type, *model_types)
+            model_type_menu = tk.OptionMenu(self.root, selected_model_type, *model_names)
             model_type_menu.pack()
 
             # Wait for the user to choose a model type
@@ -278,26 +310,18 @@ class MLApp:
             # Get the selected model type
             selected_model_type = selected_model_type.get()
 
-            # Get the best parameters for the selected model type
-            best_params = self.ml_class.get_best_params(selected_model_type)
-
-            # Display the best parameters in the text box
-            self.output_text.insert(tk.END, f"Best Parameters for {selected_model_type}:\n{best_params}\n\n")
-
-            # Plot the correlation with mean test score for parameter columns
-            self.ml_class.corr_w_test_score_plot(selected_model_type)
-
             # Ask the user for the file path and name
             file_path = filedialog.asksaveasfilename(defaultextension=".joblib",
-                                                    filetypes=[("Joblib files", "*.joblib"),
+                                                     filetypes=[("Joblib files", "*.joblib"),
                                                                 ("All files", "*.*")])
 
             # Dump the best model to the chosen file
-            dump(self.ml_class.get_best_model(selected_model_type), file_path)
-            
-            tk.messagebox.showinfo("Success", f"Model saved successfully to {file_path}.")
+            dump(self.get_best_model(selected_model_type), file_path)
+
+            # Inform the user of the successful save
+            messagebox.showinfo("Success", f"Model saved successfully to {file_path}.")
         else:
-            tk.messagebox.showerror("Error", "Please initialize MLClass first.")
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
 
     def run(self):
         self.root.mainloop()
