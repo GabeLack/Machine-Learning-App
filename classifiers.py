@@ -9,7 +9,8 @@ from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
+from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
+from tensorflow.keras.callbacks import EarlyStopping
 
 from interfaces import MLClassifierInterface
 
@@ -165,21 +166,29 @@ class GradientBoostingFactory(MLClassifierInterface):
             )
 
 class ANNClassifierFactory(MLClassifierInterface):
+    #! Used a new simpler approach rather than old KerasANN exam question
+    # I think it could theoritcally be coupled to that later?
+    # Albeit with a very heavy GridSearchCV 
     default_param_grid = {
         'batch_size': [16, 32, 64],
         'epochs': [50, 100, 200],
         'optimizer': ['adam', 'rmsprop'],
         'dropout_rate': [0.0, 0.2, 0.5],
-        'neurons': [32, 64, 128]
+        'neurons': [32, 64, 128],
+        'output_activation': ['sigmoid', 'softmax'],
+        'metrics': [['accuracy'],
+                    ['accuracy', 'Precision'],
+                    ['accuracy', 'Recall'],
+                    ['accuracy', 'AUC']]
     }
 
     def create_model(self, param_grid: dict = None, **kwargs):
-        if self.context.is_pipeline is False:
-            self.model = KerasClassifier(build_fn=self.build_model, **kwargs)
-        else:
-            if param_grid is None:
-                param_grid = self.default_param_grid
+        if param_grid is None:
+            param_grid = self.default_param_grid
 
+        if self.context.is_pipeline is False:
+            self.model = KerasClassifier(build_fn=self.build_model)
+        else:
             pipeline = make_pipeline(
                 self.context.scaler,
                 KerasClassifier(build_fn=self.build_model, **kwargs)
@@ -190,15 +199,24 @@ class ANNClassifierFactory(MLClassifierInterface):
                 param_grid,
                 n_jobs=4,
                 cv=10,
-                scoring="accuracy"
             )
 
-    def build_model(self, optimizer='adam', dropout_rate=0.0, neurons=64):
+    def build_model(self,
+                    optimizer='adam',
+                    dropout_rate=0.0,
+                    neurons=64,
+                    output_activation='softmax',
+                    metrics=['accuracy']):
         model = Sequential()
         model.add(Dense(neurons, input_dim=self.context.X_train.shape[1], activation='relu'))
         model.add(Dropout(dropout_rate))
         model.add(Dense(neurons, activation='relu'))
         model.add(Dropout(dropout_rate))
-        model.add(Dense(self.context.y_train.shape[1], activation='softmax'))
-        model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+        model.add(Dense(self.context.y_train.shape[1], activation=output_activation))
+        loss = 'categorical_crossentropy' if output_activation == 'softmax' else 'binary_crossentropy'
+        model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
         return model
+
+    def train_model(self):
+        early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        self.model.fit(self.X_train, self.y_train, callbacks=[early_stopping])

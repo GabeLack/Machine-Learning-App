@@ -99,21 +99,28 @@ class SVRFactory(MLRegressorInterface):
             )
 
 class ANNRegressorFactory(MLRegressorInterface):
+    #! Used a new simpler approach rather than old KerasANN exam question
+    # I think it could theoritcally be coupled to that later?
+    # Albeit with a very heavy GridSearchCV
     default_param_grid = {
         'batch_size': [16, 32, 64],
         'epochs': [50, 100, 200],
         'optimizer': ['adam', 'rmsprop'],
         'dropout_rate': [0.0, 0.2, 0.5],
-        'neurons': [32, 64, 128]
+        'neurons': [32, 64, 128],
+        'metrics': [['mean_squared_error'], 
+                    ['mean_absolute_error'], 
+                    ['mean_squared_error', 'mean_absolute_error'], 
+                    ['mean_squared_error', 'RootMeanSquaredError']]
     }
 
     def create_model(self, param_grid: dict = None, **kwargs):
+        if param_grid is None:
+            param_grid = self.default_param_grid
+
         if self.context.is_pipeline is False:
             self.model = KerasRegressor(build_fn=self.build_model, **kwargs)
         else:
-            if param_grid is None:
-                param_grid = self.default_param_grid
-
             pipeline = make_pipeline(
                 self.context.scaler,
                 KerasRegressor(build_fn=self.build_model, **kwargs)
@@ -127,12 +134,16 @@ class ANNRegressorFactory(MLRegressorInterface):
                 scoring="neg_mean_squared_error"
             )
 
-    def build_model(self, optimizer='adam', dropout_rate=0.0, neurons=64):
+    def build_model(self,
+                    optimizer='adam',
+                    dropout_rate=0.0,
+                    neurons=64,
+                    metrics=['mean_squared_error']):
         model = Sequential()
         model.add(Dense(neurons, input_dim=self.context.X_train.shape[1], activation='relu'))
         model.add(Dropout(dropout_rate))
         model.add(Dense(neurons, activation='relu'))
         model.add(Dropout(dropout_rate))
         model.add(Dense(1, activation='linear'))
-        model.compile(loss='mean_squared_error', optimizer=optimizer)
+        model.compile(loss='mean_squared_error', optimizer=optimizer, metrics=metrics)
         return model
