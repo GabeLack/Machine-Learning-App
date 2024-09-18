@@ -7,7 +7,9 @@ from context import ModelContext
 
 
 class MLInterface(ABC):
-    def __init__(self, model_context: ModelContext):
+    def __init__(self, model_context: ModelContext) -> None:
+        if not isinstance(model_context, ModelContext):
+            raise TypeError("model_context must be an instance of ModelContext.")
         self.context = model_context
         self.X = model_context.X
         self.y = model_context.y
@@ -18,31 +20,31 @@ class MLInterface(ABC):
         self.model = None
 
     @abstractmethod
-    def create_model(self, param_grid: dict=None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         # kwargs isn't needed in interface, but it's useful for the future implementation.
         # Return a sci-kit model
         pass
 
-    def train_model(self):
+    def train_model(self) -> None:
         self.model.fit(self.X_train, self.y_train)
 
-    def predict(self):
+    def predict(self) -> pd.DataFrame:
         self.y_pred = self.model.predict(self.X_test)
         return self.y_pred
 
     @abstractmethod
-    def metrics(self):
+    def metrics(self, filename: str) -> pd.DataFrame:
         pass
 
 
 class MLClassifierInterface(MLInterface):
     @abstractmethod
-    def create_model(self, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         # kwargs isn't needed in interface, but it's useful for the future implementation.
         # Return a sci-kit model
         pass
 
-    def metrics(self, filename: str):
+    def metrics(self, filename: str) -> pd.DataFrame:
         # Calculate metrics
         #! use metrics() only after predict()
         # Generate the classification report as a dictionary
@@ -84,12 +86,12 @@ class MLClassifierInterface(MLInterface):
 
 class MLRegressorInterface(MLInterface):
     @abstractmethod
-    def create_model(self, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         # kwargs isn't needed in interface, but it's useful for the future implementation.
         # Creates a estimator/model in self.model attribute
         pass
 
-    def metrics(self, filename: str):
+    def metrics(self, filename: str) -> pd.DataFrame:
         # Calculate metrics
         #! use metrics() only after predict()
         # Calculate metrics
