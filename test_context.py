@@ -1,15 +1,13 @@
 import unittest
 import pandas as pd
 from context import ModelContext
+from sklearn.preprocessing import Normalizer
 
 class TestModelContext(unittest.TestCase):
 
     def setUp(self):
         # Create a sample DataFrame for testing
-        example_df = {'feature1': [1, 2, 3, 4, 5],
-                      'feature2': [6, 7, 8, 9, 10],
-                      'target': [0, 1, 0, 1, 0]}
-        self.df = pd.DataFrame(example_df)
+        self.df = pd.read_csv('test_csv/binary_classification_data.csv')
         self.target_column = 'target'
 
     def test_initialization(self):
@@ -18,8 +16,33 @@ class TestModelContext(unittest.TestCase):
         self.assertEqual(context.test_size, 0.3)
         self.assertTrue(context.is_pipeline)
         self.assertIsNotNone(context.scaler)
-        self.assertEqual(len(context.X_train), 3)
-        self.assertEqual(len(context.X_test), 2)
+        self.assertEqual(len(context.X_train), 35)
+        self.assertEqual(len(context.X_test), 15)
+
+    def test_initialization_with_invalid_df(self):
+        with self.assertRaises(TypeError):
+            ModelContext(df='invalid', target_column=self.target_column)
+    def test_initialization_with_invalid_target_column(self):
+        with self.assertRaises(ValueError):
+            ModelContext(df=self.df, target_column='invalid')
+
+    def test_initialization_with_invalid_test_size_0(self):
+        with self.assertRaises(ValueError):
+            ModelContext(df=self.df, target_column=self.target_column, test_size=0)
+    def test_initialization_with_invalid_test_size_1(self):
+        with self.assertRaises(ValueError):
+            ModelContext(df=self.df, target_column=self.target_column, test_size=1)
+
+    def test_initialization_with_invalid_is_pipeline(self):
+        with self.assertRaises(TypeError):
+            ModelContext(df=self.df, target_column=self.target_column, is_pipeline='invalid')
+
+    def test_initialization_with_valid_scaler(self):
+        context = ModelContext(df=self.df, target_column=self.target_column, scaler=Normalizer())
+        self.assertTrue(isinstance(context.scaler, Normalizer))
+    def test_initialization_with_invalid_scaler(self):
+        with self.assertRaises(ValueError):
+            ModelContext(df=self.df, target_column=self.target_column, scaler='invalid')
 
     def test_check_missing_no_missing_values(self):
         context = ModelContext(df=self.df, target_column=self.target_column)
@@ -46,7 +69,7 @@ class TestModelContext(unittest.TestCase):
     def test_check_feature_types_with_object_columns(self):
         df_with_object = self.df.copy()
         # Add a column of object type
-        df_with_object['feature3'] = ['a', 'b', 'c', 'd', 'e']
+        df_with_object.loc[0, 'feature1'] = 'a'
         context = ModelContext(df=df_with_object, target_column=self.target_column)
         with self.assertRaises(UserWarning):
             context.check_feature_types()
