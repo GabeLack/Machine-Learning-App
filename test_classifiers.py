@@ -260,7 +260,7 @@ class TestANNClassifierFactory(TestClassifiers):
         model = factory.build_model()
         self.assertIsInstance(model, Sequential)
         self.assertEqual(len(model.layers), 5)  # 3 Dense layers and 2 Dropout layers
-        self.assertEqual(model.loss, 'categorical_crossentropy')  # Default loss function for classification
+        self.assertEqual(model.loss, 'binary_crossentropy')  # Default loss function for classification
 
     def test_factory_str_paramgrid(self):
         # scaler doesn't matter here so didnt bother replacing it

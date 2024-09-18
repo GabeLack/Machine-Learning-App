@@ -25,19 +25,21 @@ class LogisticFactory(MLClassifierInterface):
                 'logisticregression__class_weight': [None,'balanced'] # class weights
                 }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
+    def create_model(self, param_grid: dict|None = None) -> None:
 
         if self.context.is_pipeline is False: # use a basic model
-            self.model = LogisticRegression(**kwargs) #! needs validation of kwargs
+            self.model = LogisticRegression()
 
         else: # use the polyfeatures-scaler-estimator pipeline in a gridsearch
             if param_grid is None: # use the default param_grid
                 param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
                 self.context.scaler, # StandardScaler() or MinMaxScaler() or RobustScaler()
-                LogisticRegression(**kwargs, max_iter=1000) #! needs validation of kwargs
+                LogisticRegression(max_iter=1000)
             )
 
             self.model = GridSearchCV(
@@ -58,16 +60,18 @@ class SVCFactory(MLClassifierInterface):
         'svc__class_weight': [None, 'balanced']
     }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
+    def create_model(self, param_grid: dict|None = None) -> None:
         if self.context.is_pipeline is False:
-            self.model = SVC(**kwargs) #! needs validation of kwargs
+            self.model = SVC()
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
 
             pipeline = make_pipeline(
                 self.context.scaler,
-                SVC(**kwargs, max_iter=1000) #! needs validation of kwargs
+                SVC()
             )
 
             self.model = GridSearchCV(
@@ -87,16 +91,18 @@ class RandomForestFactory(MLClassifierInterface):
         'randomforestclassifier__class_weight': [None, 'balanced']
     }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
+    def create_model(self, param_grid: dict|None = None) -> None:
         if self.context.is_pipeline is False:
-            self.model = RandomForestClassifier(**kwargs) #! needs validation of kwargs
+            self.model = RandomForestClassifier()
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
 
             pipeline = make_pipeline(
                 self.context.scaler,
-                RandomForestClassifier(**kwargs)
+                RandomForestClassifier()
             )
 
             self.model = GridSearchCV(
@@ -116,17 +122,19 @@ class KNNFactory(MLClassifierInterface):
         'kneighborsclassifier__metric': ['manhattan', 'euclidean', 'minkowski', 'chebyshev', 'mahalanobis', 'seuclidean']
     }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
+    def create_model(self, param_grid: dict|None = None) -> None:
         if self.context.is_pipeline is False:
-            self.model = KNeighborsClassifier(**kwargs) #! needs validation of kwargs
+            self.model = KNeighborsClassifier()
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
                 self.context.scaler,
-                KNeighborsClassifier(**kwargs)
+                KNeighborsClassifier()
             )
 
             self.model = GridSearchCV(
@@ -145,16 +153,18 @@ class GradientBoostingFactory(MLClassifierInterface):
         'gradientboostingclassifier__max_depth': [3, 5, 7]
     }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
+    def create_model(self, param_grid: dict|None = None) -> None:
         if self.context.is_pipeline is False:
-            self.model = GradientBoostingClassifier(**kwargs) #! needs validation of kwargs
+            self.model = GradientBoostingClassifier()
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
 
             pipeline = make_pipeline(
                 self.context.scaler,
-                GradientBoostingClassifier(**kwargs)
+                GradientBoostingClassifier()
             )
 
             self.model = GridSearchCV(
@@ -182,16 +192,18 @@ class ANNClassifierFactory(MLClassifierInterface):
                     ['accuracy', 'AUC']]
     }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
-        if param_grid is None:
-            param_grid = self.default_param_grid
-
+    def create_model(self, param_grid: dict|None = None) -> None:
         if self.context.is_pipeline is False:
             self.model = KerasClassifier(build_fn=self.build_model)
         else:
+            if param_grid is None:
+                param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
+
             pipeline = make_pipeline(
                 self.context.scaler,
-                KerasClassifier(build_fn=self.build_model, **kwargs)
+                KerasClassifier(build_fn=self.build_model, )
             )
 
             self.model = GridSearchCV(
