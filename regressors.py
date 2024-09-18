@@ -8,6 +8,7 @@ from sklearn.svm import SVR
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from scikeras.wrappers import KerasRegressor
+from tensorflow.keras.callbacks import EarlyStopping
 
 from interfaces import MLRegressorInterface
 
@@ -16,17 +17,20 @@ class LinearFactory(MLRegressorInterface):
         'polynomialfeatures__degree': np.arange(1, 8)
     }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
+    def create_model(self, param_grid: dict|None = None) -> None:
         if self.context.is_pipeline is False:  # use a basic model
-            self.model = LinearRegression(**kwargs)  #! needs validation of kwargs
+            self.model = LinearRegression()
+
         else:  # use the polyfeatures-scaler-estimator pipeline in a gridsearch
             if param_grid is None:  # use the default param_grid
                 param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
                 self.context.scaler,  # StandardScaler() or MinMaxScaler() or RobustScaler()
-                LinearRegression(**kwargs)
+                LinearRegression()
             )
 
             self.model = GridSearchCV(
@@ -46,17 +50,19 @@ class ElasticNetFactory(MLRegressorInterface):
         # l1_ratio = 0 is ridge (L2 penalty), l1_ratio = 1 is lasso (L1 penalty)
     }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
+    def create_model(self, param_grid: dict|None = None) -> None:
         if self.context.is_pipeline is False:
-            self.model = ElasticNet(**kwargs)  #! needs validation of kwargs
+            self.model = ElasticNet()
         else:
-            if param_grid is None:
+            if param_grid is None:  # use the default param_grid
                 param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
                 self.context.scaler,
-                ElasticNet(**kwargs)
+                ElasticNet()
             )
 
             self.model = GridSearchCV(
@@ -77,17 +83,19 @@ class SVRFactory(MLRegressorInterface):
         'svr__gamma': ['scale', 'auto']
     }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
+    def create_model(self, param_grid: dict|None = None) -> None:
         if self.context.is_pipeline is False:
-            self.model = SVR(**kwargs)  #! needs validation of kwargs
+            self.model = SVR()
         else:
-            if param_grid is None:
+            if param_grid is None:  # use the default param_grid
                 param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
                 self.context.scaler,
-                SVR(**kwargs)
+                SVR()
             )
 
             self.model = GridSearchCV(
@@ -99,7 +107,7 @@ class SVRFactory(MLRegressorInterface):
             )
 
 class ANNRegressorFactory(MLRegressorInterface):
-    #! Used a new simpler approach rather than old KerasANN exam question
+    #! Used a new simpler approach rather than the KerasANN exam question
     # I think it could theoritcally be coupled to that later?
     # Albeit with a very heavy GridSearchCV
     default_param_grid = {
@@ -108,22 +116,23 @@ class ANNRegressorFactory(MLRegressorInterface):
         'optimizer': ['adam', 'rmsprop'],
         'dropout_rate': [0.0, 0.2, 0.5],
         'neurons': [32, 64, 128],
-        'metrics': [['mean_squared_error'], 
-                    ['mean_absolute_error'], 
-                    ['mean_squared_error', 'mean_absolute_error'], 
+        'metrics': [['mean_squared_error'],
+                    ['mean_absolute_error'],
+                    ['mean_squared_error', 'mean_absolute_error'],
                     ['mean_squared_error', 'RootMeanSquaredError']]
     }
 
-    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
-        if param_grid is None:
-            param_grid = self.default_param_grid
-
+    def create_model(self, param_grid: dict|None = None) -> None:
         if self.context.is_pipeline is False:
-            self.model = KerasRegressor(build_fn=self.build_model, **kwargs)
+            self.model = KerasRegressor(build_fn=self.build_model)
         else:
+            if param_grid is None:  # use the default param_grid
+                param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict):
+                raise ValueError("param_grid must be a dictionary.")
             pipeline = make_pipeline(
                 self.context.scaler,
-                KerasRegressor(build_fn=self.build_model, **kwargs)
+                KerasRegressor(build_fn=self.build_model)
             )
 
             self.model = GridSearchCV(
@@ -147,3 +156,7 @@ class ANNRegressorFactory(MLRegressorInterface):
         model.add(Dense(1, activation='linear'))
         model.compile(loss='mean_squared_error', optimizer=optimizer, metrics=metrics)
         return model
+
+    def train_model(self) -> None:
+        early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        self.model.fit(self.X_train, self.y_train, callbacks=[early_stopping])

@@ -6,41 +6,46 @@ from sklearn.preprocessing import Normalizer
 class TestModelContext(unittest.TestCase):
 
     def setUp(self):
-        # Create a sample DataFrame for testing
+        # Create a sample DataFrame for testing, file has a length of 50 lines
         self.df = pd.read_csv('test_csv/binary_classification_data.csv')
         self.target_column = 'target'
 
-    def test_initialization(self):
+    def test_init(self):
         context = ModelContext(df=self.df, target_column=self.target_column)
+        self.assertIsNotNone(context.df)
         self.assertEqual(context.target_column, self.target_column)
         self.assertEqual(context.test_size, 0.3)
         self.assertTrue(context.is_pipeline)
         self.assertIsNotNone(context.scaler)
+        self.assertEqual(len(context.X), 50)
+        self.assertEqual(len(context.y), 50)
         self.assertEqual(len(context.X_train), 35)
         self.assertEqual(len(context.X_test), 15)
+        self.assertEqual(len(context.y_train), 35)
+        self.assertEqual(len(context.y_test), 15)
 
-    def test_initialization_with_invalid_df(self):
+    def test_init_with_invalid_df(self):
         with self.assertRaises(TypeError):
             ModelContext(df='invalid', target_column=self.target_column)
-    def test_initialization_with_invalid_target_column(self):
+    def test_init_with_invalid_target_column(self):
         with self.assertRaises(ValueError):
             ModelContext(df=self.df, target_column='invalid')
 
-    def test_initialization_with_invalid_test_size_0(self):
+    def test_init_with_invalid_test_size_0(self):
         with self.assertRaises(ValueError):
             ModelContext(df=self.df, target_column=self.target_column, test_size=0)
-    def test_initialization_with_invalid_test_size_1(self):
+    def test_init_with_invalid_test_size_1(self):
         with self.assertRaises(ValueError):
             ModelContext(df=self.df, target_column=self.target_column, test_size=1)
 
-    def test_initialization_with_invalid_is_pipeline(self):
+    def test_init_with_invalid_is_pipeline(self):
         with self.assertRaises(TypeError):
             ModelContext(df=self.df, target_column=self.target_column, is_pipeline='invalid')
 
-    def test_initialization_with_valid_scaler(self):
+    def test_init_with_valid_scaler(self):
         context = ModelContext(df=self.df, target_column=self.target_column, scaler=Normalizer())
         self.assertTrue(isinstance(context.scaler, Normalizer))
-    def test_initialization_with_invalid_scaler(self):
+    def test_init_with_invalid_scaler(self):
         with self.assertRaises(ValueError):
             ModelContext(df=self.df, target_column=self.target_column, scaler='invalid')
 
