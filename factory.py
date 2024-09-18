@@ -54,9 +54,10 @@ class ModelFactory:
         """Creates and returns a machine learning model based on the specified model, problem, and context.
         
         Parameters:
-        model_type (ModelType): The type of model to create (e.g., LOGISTIC, SVC, RANDOMFOREST, etc.).
+        model_type (ModelType): The type of model to create (e.g., LOGISTIC, SVC, etc.).
         problem_type (ProblemType): The type of problem to solve (e.g., CLASSIFICATION, REGRESSION).
-        model_context (ModelContext): The context in which the model will be used, providing necessary configuration and data.
+        model_context (ModelContext): The context in which the model will be used, providing necessary 
+        configuration and data.
         Returns:
         object: An instance of the created model factory, which has already created the model.
         Raises:
