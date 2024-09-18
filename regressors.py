@@ -7,7 +7,7 @@ from sklearn.svm import SVR
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.wrappers.scikit_learn import KerasRegressor
+from scikeras.wrappers import KerasRegressor
 
 from interfaces import MLRegressorInterface
 
@@ -16,7 +16,7 @@ class LinearFactory(MLRegressorInterface):
         'polynomialfeatures__degree': np.arange(1, 8)
     }
 
-    def create_model(self, param_grid:dict=None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         if self.context.is_pipeline is False:  # use a basic model
             self.model = LinearRegression(**kwargs)  #! needs validation of kwargs
         else:  # use the polyfeatures-scaler-estimator pipeline in a gridsearch
@@ -46,7 +46,7 @@ class ElasticNetFactory(MLRegressorInterface):
         # l1_ratio = 0 is ridge (L2 penalty), l1_ratio = 1 is lasso (L1 penalty)
     }
 
-    def create_model(self, param_grid:dict=None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         if self.context.is_pipeline is False:
             self.model = ElasticNet(**kwargs)  #! needs validation of kwargs
         else:
@@ -77,7 +77,7 @@ class SVRFactory(MLRegressorInterface):
         'svr__gamma': ['scale', 'auto']
     }
 
-    def create_model(self, param_grid:dict=None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         if self.context.is_pipeline is False:
             self.model = SVR(**kwargs)  #! needs validation of kwargs
         else:
@@ -114,7 +114,7 @@ class ANNRegressorFactory(MLRegressorInterface):
                     ['mean_squared_error', 'RootMeanSquaredError']]
     }
 
-    def create_model(self, param_grid: dict = None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         if param_grid is None:
             param_grid = self.default_param_grid
 
@@ -135,10 +135,10 @@ class ANNRegressorFactory(MLRegressorInterface):
             )
 
     def build_model(self,
-                    optimizer='adam',
-                    dropout_rate=0.0,
-                    neurons=64,
-                    metrics=['mean_squared_error']):
+                    optimizer: str = 'adam',
+                    dropout_rate: float = 0.0,
+                    neurons: int = 64,
+                    metrics: list[str] = ['mean_squared_error']) -> Sequential:
         model = Sequential()
         model.add(Dense(neurons, input_dim=self.context.X_train.shape[1], activation='relu'))
         model.add(Dropout(dropout_rate))

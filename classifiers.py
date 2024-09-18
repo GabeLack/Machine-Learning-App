@@ -9,7 +9,7 @@ from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
-from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
+from scikeras.wrappers import KerasClassifier
 from tensorflow.keras.callbacks import EarlyStopping
 
 from interfaces import MLClassifierInterface
@@ -25,7 +25,7 @@ class LogisticFactory(MLClassifierInterface):
                 'logisticregression__class_weight': [None,'balanced'] # class weights
                 }
 
-    def create_model(self, param_grid:dict=None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
 
         if self.context.is_pipeline is False: # use a basic model
             self.model = LogisticRegression(**kwargs) #! needs validation of kwargs
@@ -58,7 +58,7 @@ class SVCFactory(MLClassifierInterface):
         'svc__class_weight': [None, 'balanced']
     }
 
-    def create_model(self, param_grid:dict=None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         if self.context.is_pipeline is False:
             self.model = SVC(**kwargs) #! needs validation of kwargs
         else:
@@ -87,7 +87,7 @@ class RandomForestFactory(MLClassifierInterface):
         'randomforestclassifier__class_weight': [None, 'balanced']
     }
 
-    def create_model(self, param_grid:dict=None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         if self.context.is_pipeline is False:
             self.model = RandomForestClassifier(**kwargs) #! needs validation of kwargs
         else:
@@ -116,7 +116,7 @@ class KNNFactory(MLClassifierInterface):
         'kneighborsclassifier__metric': ['manhattan', 'euclidean', 'minkowski', 'chebyshev', 'mahalanobis', 'seuclidean']
     }
 
-    def create_model(self, param_grid:dict=None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         if self.context.is_pipeline is False:
             self.model = KNeighborsClassifier(**kwargs) #! needs validation of kwargs
         else:
@@ -145,7 +145,7 @@ class GradientBoostingFactory(MLClassifierInterface):
         'gradientboostingclassifier__max_depth': [3, 5, 7]
     }
 
-    def create_model(self, param_grid:dict=None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         if self.context.is_pipeline is False:
             self.model = GradientBoostingClassifier(**kwargs) #! needs validation of kwargs
         else:
@@ -182,7 +182,7 @@ class ANNClassifierFactory(MLClassifierInterface):
                     ['accuracy', 'AUC']]
     }
 
-    def create_model(self, param_grid: dict = None, **kwargs):
+    def create_model(self, param_grid: dict|None = None, **kwargs) -> None:
         if param_grid is None:
             param_grid = self.default_param_grid
 
@@ -202,11 +202,11 @@ class ANNClassifierFactory(MLClassifierInterface):
             )
 
     def build_model(self,
-                    optimizer='adam',
-                    dropout_rate=0.0,
-                    neurons=64,
-                    output_activation='softmax',
-                    metrics=['accuracy']):
+                    optimizer: str = 'adam',
+                    dropout_rate: float = 0.0,
+                    neurons: int = 64,
+                    output_activation: str = 'softmax',
+                    metrics: list[str] = ['accuracy']) -> Sequential:
         model = Sequential()
         model.add(Dense(neurons, input_dim=self.context.X_train.shape[1], activation='relu'))
         model.add(Dropout(dropout_rate))
@@ -217,6 +217,6 @@ class ANNClassifierFactory(MLClassifierInterface):
         model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
         return model
 
-    def train_model(self):
+    def train_model(self) -> None:
         early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
         self.model.fit(self.X_train, self.y_train, callbacks=[early_stopping])
