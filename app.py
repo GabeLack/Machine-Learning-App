@@ -8,6 +8,8 @@ from plotting import Plotting
 from context import ModelContext
 from factory import ModelFactory, ModelType, ProblemType
 
+#TODO import Normalizer scalar for ANN models?
+
 class MLApp:
     plots = []  # To store all plots
     predictions = []  # To store all predictions
