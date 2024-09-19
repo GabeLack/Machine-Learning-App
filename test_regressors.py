@@ -161,7 +161,7 @@ class TestSVRFactory(TestRegressors):
 
 
 class TestANNRegressorFactory(TestRegressors):
-    def test_regressor_factory(self):
+    def test_factory(self):
         # Correct scaler for ANN is Normalizer
         mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
         factory = ANNRegressorFactory(mock_context)
@@ -177,7 +177,7 @@ class TestANNRegressorFactory(TestRegressors):
         self.assertIsInstance(factory.model, GridSearchCV)
 
     @parameterized.expand(invalid_param_grids())
-    def test_factory_paramgrid(self, name, invalid_param_grid):
+    def test_factory_invalid_paramgrid(self, name, invalid_param_grid):
         factory = ANNRegressorFactory(self.mock_context)
         with self.assertRaises(ValueError):
             factory.create_model(param_grid=invalid_param_grid)

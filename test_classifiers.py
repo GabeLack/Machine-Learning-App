@@ -15,6 +15,12 @@ from classifiers import LogisticFactory, SVCFactory, KNNFactory, GradientBoostin
 from context import ModelContext
 
 
+def dfs():
+    return [
+        ("binary_df", pd.read_csv('test_csv/binary_classification_data.csv')),
+        ("multi_df", pd.read_csv('test_csv/multi_classification_data.csv'))
+    ]
+
 def contexts():
     return [
         ("binary_context", ModelContext(pd.read_csv('test_csv/binary_classification_data.csv'), 'target')),
@@ -37,7 +43,18 @@ def invalid_param_grids_for_fit():
     ]
 
 
-class TestLogisticFactory(unittest.TestCase):
+class TestClassifiers(unittest.TestCase):
+
+    def setUp(self):
+        # Load binary classification data
+        self.df_binary_classification = pd.read_csv('test_csv/binary_classification_data.csv')
+        self.binary_context = ModelContext(self.df_binary_classification, 'target')
+
+        # Load multi-class classification data
+        self.df_multi_classification = pd.read_csv('test_csv/multi_classification_data.csv')
+        self.multi_context = ModelContext(self.df_multi_classification, 'target')
+
+class TestLogisticFactory(TestClassifiers):
     @parameterized.expand(contexts())
     def test_factory(self, name, context):
         factory = LogisticFactory(context)
@@ -68,23 +85,37 @@ class TestLogisticFactory(unittest.TestCase):
         factory.create_model(param_grid={'polynomialfeatures__degree': [1, 2, 3]})
         self.assertIsInstance(factory.model, GridSearchCV)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids())
-    def test_factory_invalid_paramgrid(self, name, context, invalid_param_grid):
-        factory = LogisticFactory(context)
+    def test_factory_invalid_paramgrid_binary(self, name, invalid_param_grid):
+        # can't stack parameterized decorators, so these are split into two tests
+        # binary context
+        factory = LogisticFactory(self.binary_context)
+        with self.assertRaises(ValueError):
+            factory.create_model(param_grid=invalid_param_grid)
+    @parameterized.expand(invalid_param_grids())
+    def test_factory_invalid_paramgrid_multi(self, name, invalid_param_grid):
+        # multi context
+        factory = LogisticFactory(self.multi_context)
         with self.assertRaises(ValueError):
             factory.create_model(param_grid=invalid_param_grid)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids_for_fit())
-    def test_factory_paramgrid_for_fit(self, name, context, bad_param_grid):
-        factory = LogisticFactory(context)
+    def test_factory_paramgrid_for_fit_binary(self, name, bad_param_grid):
+        # binary context
+        factory = LogisticFactory(self.binary_context)
         factory.create_model(param_grid=bad_param_grid)
         with self.assertRaises(ValueError):
-            factory.model.fit(context.X_train, context.y_train)
+            factory.model.fit(self.binary_context.X_train, self.binary_context.y_train)
+    @parameterized.expand(invalid_param_grids_for_fit())
+    def test_factory_paramgrid_for_fit_multi(self, name, bad_param_grid):
+        # multi context
+        factory = LogisticFactory(self.multi_context)
+        factory.create_model(param_grid=bad_param_grid)
+        with self.assertRaises(ValueError):
+            factory.model.fit(self.binary_context.X_train, self.binary_context.y_train)
 
 
-class TestSVCFactory(unittest.TestCase):
+class TestSVCFactory(TestClassifiers):
     @parameterized.expand(contexts())
     def test_factory(self, name, context):
         factory = SVCFactory(context)
@@ -114,23 +145,32 @@ class TestSVCFactory(unittest.TestCase):
         factory.create_model(param_grid={'svc__C': [0.1, 1, 10]})
         self.assertIsInstance(factory.model, GridSearchCV)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids())
-    def test_factory_invalid_paramgrid(self, name, context, invalid_param_grid):
-        factory = SVCFactory(context)
+    def test_factory_invalid_paramgrid_binary(self, name, invalid_param_grid):
+        factory = SVCFactory(self.binary_context)
+        with self.assertRaises(ValueError):
+            factory.create_model(param_grid=invalid_param_grid)
+    @parameterized.expand(invalid_param_grids())
+    def test_factory_invalid_paramgrid_multi(self, name, invalid_param_grid):
+        factory = SVCFactory(self.multi_context)
         with self.assertRaises(ValueError):
             factory.create_model(param_grid=invalid_param_grid)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids_for_fit())
-    def test_factory_paramgrid_for_fit(self, name, context, bad_param_grid):
-        factory = SVCFactory(context)
+    def test_factory_paramgrid_for_fit_binary(self, name, bad_param_grid):
+        factory = SVCFactory(self.binary_context)
         factory.create_model(param_grid=bad_param_grid)
         with self.assertRaises(ValueError):
-            factory.model.fit(context.X_train, context.y_train)
+            factory.model.fit(self.binary_context.X_train, self.binary_context.y_train)
+    @parameterized.expand(invalid_param_grids_for_fit())
+    def test_factory_paramgrid_for_fit_multi(self, name, bad_param_grid):
+        factory = SVCFactory(self.multi_context)
+        factory.create_model(param_grid=bad_param_grid)
+        with self.assertRaises(ValueError):
+            factory.model.fit(self.multi_context.X_train, self.multi_context.y_train)
 
 
-class TestRandomForestFactory(unittest.TestCase):
+class TestRandomForestFactory(TestClassifiers):
     @parameterized.expand(contexts())
     def test_factory(self, name, context):
         factory = RandomForestFactory(context)
@@ -160,23 +200,32 @@ class TestRandomForestFactory(unittest.TestCase):
         factory.create_model(param_grid={'randomforestclassifier__n_estimators': [100, 200]})
         self.assertIsInstance(factory.model, GridSearchCV)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids())
-    def test_factory_invalid_paramgrid(self, name, context, invalid_param_grid):
-        factory = RandomForestFactory(context)
+    def test_factory_invalid_paramgrid_binary(self, name, invalid_param_grid):
+        factory = RandomForestFactory(self.binary_context)
+        with self.assertRaises(ValueError):
+            factory.create_model(param_grid=invalid_param_grid)
+    @parameterized.expand(invalid_param_grids())
+    def test_factory_invalid_paramgrid_multi(self, name, invalid_param_grid):
+        factory = RandomForestFactory(self.multi_context)
         with self.assertRaises(ValueError):
             factory.create_model(param_grid=invalid_param_grid)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids_for_fit())
-    def test_factory_paramgrid_for_fit(self, name, context, bad_param_grid):
-        factory = RandomForestFactory(context)
+    def test_factory_paramgrid_for_fit_binary(self, name, bad_param_grid):
+        factory = RandomForestFactory(self.binary_context)
         factory.create_model(param_grid=bad_param_grid)
         with self.assertRaises(ValueError):
-            factory.model.fit(context.X_train, context.y_train)
+            factory.model.fit(self.binary_context.X_train, self.binary_context.y_train)
+    @parameterized.expand(invalid_param_grids_for_fit())
+    def test_factory_paramgrid_for_fit_multi(self, name, bad_param_grid):
+        factory = RandomForestFactory(self.multi_context)
+        factory.create_model(param_grid=bad_param_grid)
+        with self.assertRaises(ValueError):
+            factory.model.fit(self.multi_context.X_train, self.multi_context.y_train)
 
 
-class TestKNNFactory(unittest.TestCase):
+class TestKNNFactory(TestClassifiers):
     @parameterized.expand(contexts())
     def test_factory(self, name, context):
         factory = KNNFactory(context)
@@ -206,23 +255,32 @@ class TestKNNFactory(unittest.TestCase):
         factory.create_model(param_grid={'kneighborsclassifier__n_neighbors': [3, 5, 7]})
         self.assertIsInstance(factory.model, GridSearchCV)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids())
-    def test_factory_invalid_paramgrid(self, name, context, invalid_param_grid):
-        factory = KNNFactory(context)
+    def test_factory_invalid_paramgrid_binary(self, name, invalid_param_grid):
+        factory = KNNFactory(self.binary_context)
+        with self.assertRaises(ValueError):
+            factory.create_model(param_grid=invalid_param_grid)
+    @parameterized.expand(invalid_param_grids())
+    def test_factory_invalid_paramgrid_multi(self, name, invalid_param_grid):
+        factory = KNNFactory(self.multi_context)
         with self.assertRaises(ValueError):
             factory.create_model(param_grid=invalid_param_grid)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids_for_fit())
-    def test_factory_paramgrid_for_fit(self, name, context, bad_param_grid):
-        factory = KNNFactory(context)
+    def test_factory_paramgrid_for_fit_binary(self, name, bad_param_grid):
+        factory = KNNFactory(self.binary_context)
         factory.create_model(param_grid=bad_param_grid)
         with self.assertRaises(ValueError):
-            factory.model.fit(context.X_train, context.y_train)
+            factory.model.fit(self.binary_context.X_train, self.binary_context.y_train)
+    @parameterized.expand(invalid_param_grids_for_fit())
+    def test_factory_paramgrid_for_fit_multi(self, name, bad_param_grid):
+        factory = KNNFactory(self.multi_context)
+        factory.create_model(param_grid=bad_param_grid)
+        with self.assertRaises(ValueError):
+            factory.model.fit(self.multi_context.X_train, self.multi_context.y_train)
 
 
-class TestGradientBoostingFactory(unittest.TestCase):
+class TestGradientBoostingFactory(TestClassifiers):
     @parameterized.expand(contexts())
     def test_factory(self, name, context):
         factory = GradientBoostingFactory(context)
@@ -252,42 +310,41 @@ class TestGradientBoostingFactory(unittest.TestCase):
         factory.create_model(param_grid={'gradientboostingclassifier__n_estimators': [100, 200]})
         self.assertIsInstance(factory.model, GridSearchCV)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids())
-    def test_factory_invalid_paramgrid(self, name, context, invalid_param_grid):
-        factory = GradientBoostingFactory(context)
+    def test_factory_invalid_paramgrid_binary(self, name, invalid_param_grid):
+        factory = GradientBoostingFactory(self.binary_context)
+        with self.assertRaises(ValueError):
+            factory.create_model(param_grid=invalid_param_grid)
+    @parameterized.expand(invalid_param_grids())
+    def test_factory_invalid_paramgrid_multi(self, name, invalid_param_grid):
+        factory = GradientBoostingFactory(self.multi_context)
         with self.assertRaises(ValueError):
             factory.create_model(param_grid=invalid_param_grid)
 
-    @parameterized.expand(contexts())
     @parameterized.expand(invalid_param_grids_for_fit())
-    def test_factory_paramgrid_for_fit(self, name, context, bad_param_grid):
-        factory = GradientBoostingFactory(context)
+    def test_factory_paramgrid_for_fit_binary(self, name, bad_param_grid):
+        factory = GradientBoostingFactory(self.binary_context)
         factory.create_model(param_grid=bad_param_grid)
         with self.assertRaises(ValueError):
-            factory.model.fit(context.X_train, context.y_train)
+            factory.model.fit(self.binary_context.X_train, self.binary_context.y_train)
+    @parameterized.expand(invalid_param_grids_for_fit())
+    def test_factory_paramgrid_for_fit_multi(self, name, bad_param_grid):
+        factory = GradientBoostingFactory(self.multi_context)
+        factory.create_model(param_grid=bad_param_grid)
+        with self.assertRaises(ValueError):
+            factory.model.fit(self.multi_context.X_train, self.multi_context.y_train)
 
 
-class TestANNClassifierFactory(unittest.TestCase):
-    @parameterized.expand(contexts())
-    def test_classifier_factory(self, name, context):
-        factory = ANNClassifierFactory(context)
+class TestANNClassifierFactory(TestClassifiers):
+    @parameterized.expand(dfs())
+    def test_factory(self, name, df):
+        ann_context = ModelContext(df, 'target', scaler=Normalizer())
+        factory = ANNClassifierFactory(ann_context)
         factory.create_model()
         self.assertIsInstance(factory.model, GridSearchCV)
         self.assertIsInstance(factory.model.estimator.steps[0][1], Normalizer)
         self.assertIsInstance(factory.model.estimator.steps[1][1], KerasClassifier)
         self.assertTrue(callable(factory.model.estimator.steps[1][1].build_fn))
-
-    @parameterized.expand(contexts())
-    def test_build_model(self, name, context):
-        factory = ANNClassifierFactory(context)
-        model = factory.build_model()
-        self.assertIsInstance(model, Sequential)
-        self.assertEqual(len(model.layers), 5)  # 3 Dense layers and 2 Dropout layers
-        if name == "binary_context":
-            self.assertEqual(model.loss, 'binary_crossentropy')  # Default loss function for binary classification
-        else:
-            self.assertEqual(model.loss, 'categorical_crossentropy')  # Default loss function for multi-class classification
 
     @parameterized.expand(contexts())
     def test_factory_custom_paramgrid(self, name, context):
@@ -296,22 +353,47 @@ class TestANNClassifierFactory(unittest.TestCase):
         self.assertIsInstance(factory.model, GridSearchCV)
 
     @parameterized.expand(contexts())
-    @parameterized.expand(invalid_param_grids())
-    def test_factory_paramgrid(self, name, context, invalid_param_grid):
-        factory = ANNClassifierFactory(context)
-        with self.assertRaises(ValueError):
-            factory.create_model(param_grid=invalid_param_grid)
+    def test_factory_invalid_paramgrid(self, name, context):
+        invalid_param_grids = [
+            ("invalid_string", 'str'),
+            ("invalid_float", 1.23),
+            ("invalid_int", 123),
+            ("invalid_tuple", (1, 2, 3)),
+            ("invalid_list", [1, 2, 3]),
+            ("invalid_empty_dict", {})
+        ]
+        for invalid_param_grid in invalid_param_grids:
+            with self.subTest(invalid_param_grid=invalid_param_grid):
+                factory = ANNClassifierFactory(context)
+                with self.assertRaises(ValueError):
+                    factory.create_model(param_grid=invalid_param_grid[1])
 
     @parameterized.expand(contexts())
-    @parameterized.expand([
-        ("invalid_param_name", {'invalid_param': [1, 2, 3]}),
-        ("invalid_none", None)
-    ])
-    def test_factory_paramgrid_for_fit(self, name, context, bad_param_grid):
+    def test_factory_paramgrid_for_fit(self, name, context):
+        invalid_param_grids_for_fit = [
+            ("invalid_param_name", {'invalid_param': [1, 2, 3]}),
+            ("invalid_none", None)
+        ]
+        for bad_param_grid in invalid_param_grids_for_fit:
+            with self.subTest(bad_param_grid=bad_param_grid):
+                factory = ANNClassifierFactory(context)
+                factory.create_model(param_grid=bad_param_grid[1])
+                with self.assertRaises(ValueError):
+                    factory.model.fit(context.X_train, context.y_train)
+
+    @parameterized.expand(contexts())
+    def test_build_model(self, name, context):
         factory = ANNClassifierFactory(context)
-        factory.create_model(param_grid=bad_param_grid)
-        with self.assertRaises(ValueError):
-            factory.model.fit(context.X_train, context.y_train)
+        model = factory.build_model()
+        self.assertIsInstance(model, Sequential)
+        self.assertEqual(len(model.layers), 5)
+        # 3 Dense layers and 2 Dropout layers
+        if name == "binary_context":
+            self.assertEqual(model.loss, 'binary_crossentropy')
+            # Default loss function for binary classification
+        else:
+            self.assertEqual(model.loss, 'categorical_crossentropy')
+            # Default loss function for multi-class classification
 
     @parameterized.expand(contexts())
     def test_build_model_custom_params(self, name, context):
@@ -321,90 +403,96 @@ class TestANNClassifierFactory(unittest.TestCase):
                                     activation='tanh',
                                     optimizer='rmsprop')
         self.assertIsInstance(model, Sequential)
-        self.assertEqual(len(model.layers), 7)  # 4 Dense layers (including output) and 3 Dropout layers
+        self.assertEqual(len(model.layers), 7) # 4 Dense layers (including output) and 3 Dropout layers
 
     @parameterized.expand(contexts())
-    @parameterized.expand([
-        ("invalid_string", 'invalid'),
-        ("invalid_int", 123),
-        ("invalid_float", 1.23),
-        ("invalid_list", [64, 64]),
-        ("invalid_dict", {'layer1': 64, 'layer2': 64}),
-        ("invalid_none", None)
-    ])
-    def test_build_model_neuron_layers(self, name, context, invalid_input):
-        # Only valid input is a tuple of integers
-        factory = ANNClassifierFactory(context)
-        with self.assertRaises(ValueError):
-            factory.build_model(neuron_layers=invalid_input)
+    def test_build_model_invalid_neuron_layers(self, name, context):
+        invalid_inputs = [
+            ("invalid_string", 'invalid'),
+            ("invalid_int", 123),
+            ("invalid_list", [64, 64]),
+            ("invalid_dict", {'layer1': 64, 'layer2': 64}),
+            ("invalid_none", None)
+        ]
+        for invalid_input in invalid_inputs:
+            with self.subTest(invalid_input=invalid_input):
+                factory = ANNClassifierFactory(context)
+                with self.assertRaises(ValueError):
+                    factory.build_model(neuron_layers=invalid_input[1])
 
     @parameterized.expand(contexts())
-    @parameterized.expand([
-        ("invalid_string_in_tuple", ('invalid',)),
-        ("invalid_float_in_tuple", (1.23,)),
-        ("invalid_list_in_tuple", ([64, 64],)),
-        ("invalid_dict_in_tuple", ({'layer1': 64},)),
-        ("invalid_none_in_tuple", (None,))
-    ])
-    def test_build_model_tuple_neuron_layers(self, name, context, invalid_input):
-        # Only the tuple input is tested here because the individual elements are tested in the previous test
-        factory = ANNClassifierFactory(context)
-        with self.assertRaises(ValueError):
-            factory.build_model(neuron_layers=invalid_input)
+    def test_build_model_invalid_tuple_neuron_layers(self, name, context):
+        invalid_inputs = [
+            ("invalid_string_in_tuple", ('invalid',)),
+            ("invalid_float_in_tuple", (1.23,)),
+            ("invalid_list_in_tuple", ([64, 64],)),
+            ("invalid_dict_in_tuple", ({'layer1': 64},)),
+            ("invalid_none_in_tuple", (None,))
+        ]
+        for invalid_input in invalid_inputs:
+            with self.subTest(invalid_input=invalid_input):
+                factory = ANNClassifierFactory(context)
+                with self.assertRaises(ValueError):
+                    factory.build_model(neuron_layers=invalid_input[1])
 
     @parameterized.expand(contexts())
-    @parameterized.expand([
-        ("invalid_string", 'invalid'),
-        ("invalid_int", 1),
-        ("invalid_list", [0.2, 0.2]),
-        ("invalid_dict", {'layer1': 0.2, 'layer2': 0.2}),
-        ("invalid_none", None)
-    ])
-    def test_build_model_dropout_layers(self, name, context, invalid_input):
-        # Only valid input is a tuple of floats
-        factory = ANNClassifierFactory(context)
-        with self.assertRaises(ValueError):
-            factory.build_model(dropout_layers=invalid_input)
+    def test_build_model_invalid_dropout_layers(self, name, context):
+        invalid_inputs = [
+            ("invalid_string", 'invalid'),
+            ("invalid_int", 1),
+            ("invalid_list", [0.2, 0.2]),
+            ("invalid_dict", {'layer1': 0.2, 'layer2': 0.2}),
+            ("invalid_none", None)
+        ]
+        for invalid_input in invalid_inputs:
+            with self.subTest(invalid_input=invalid_input):
+                factory = ANNClassifierFactory(context)
+                with self.assertRaises(ValueError):
+                    factory.build_model(dropout_layers=invalid_input[1])
 
     @parameterized.expand(contexts())
-    @parameterized.expand([
-        ("invalid_string_in_tuple", ('invalid',)),
-        ("invalid_int_in_tuple", (1,)),
-        ("invalid_list_in_tuple", ([0.2, 0.2],)),
-        ("invalid_dict_in_tuple", ({'layer1': 0.2},)),
-        ("invalid_none_in_tuple", (None,))
-    ])
-    def test_build_model_tuple_dropout_layers(self, name, context, invalid_input):
-        factory = ANNClassifierFactory(context)
-        with self.assertRaises(ValueError):
-            factory.build_model(dropout_layers=invalid_input)
+    def test_build_model_invalid_tuple_dropout_layers(self, name, context):
+        invalid_inputs = [
+            ("invalid_string_in_tuple", ('invalid',)),
+            ("invalid_int_in_tuple", (1,)),
+            ("invalid_list_in_tuple", ([0.2, 0.2],)),
+            ("invalid_dict_in_tuple", ({'layer1': 0.2},)),
+            ("invalid_none_in_tuple", (None,))
+        ]
+        for invalid_input in invalid_inputs:
+            with self.subTest(invalid_input=invalid_input):
+                factory = ANNClassifierFactory(context)
+                with self.assertRaises(ValueError):
+                    factory.build_model(dropout_layers=invalid_input[1])
 
     @parameterized.expand(contexts())
-    @parameterized.expand([
-        ("invalid_string", 'invalid'),
-        ("invalid_int", 123),
-        ("invalid_list", ['relu', 'relu']),
-        ("invalid_dict", {'layer1': 'relu', 'layer2': 'relu'})
-    ])
-    def test_build_model_activation(self, name, context, invalid_input):
-        factory = ANNClassifierFactory(context)
-        with self.assertRaises(ValueError):
-            # Invalid activation function
-            model = factory.build_model(activation=invalid_input)
+    def test_build_model_invalid_activation(self, name, context):
+        invalid_inputs = [
+            ("invalid_string", 'invalid'),
+            ("invalid_int", 123),
+            ("invalid_list", ['relu', 'relu']),
+            ("invalid_dict", {'layer1': 'relu', 'layer2': 'relu'})
+        ]
+        for invalid_input in invalid_inputs:
+            with self.subTest(invalid_input=invalid_input):
+                factory = ANNClassifierFactory(context)
+                with self.assertRaises(ValueError):
+                    factory.build_model(activation=invalid_input[1])
 
     @parameterized.expand(contexts())
-    @parameterized.expand([
-        ("invalid_string", 'invalid'),
-        ("invalid_int", 123),
-        ("invalid_list", ['invalid',]),
-        ("invalid_tuple", ('invalid',)),
-        ("invalid_dict", {'layer1': 'invalid', 'layer2': 'invalid'})
-    ])
-    def test_build_model_optimizer(self, name, context, invalid_input):
-        factory = ANNClassifierFactory(context)
-        with self.assertRaises(ValueError):
-            # Invalid optimizer
-            model = factory.build_model(optimizer=invalid_input)
+    def test_build_model_invalid_optimizer(self, name, context):
+        invalid_inputs = [
+            ("invalid_string", 'invalid'),
+            ("invalid_int", 123),
+            ("invalid_list", ['invalid',]),
+            ("invalid_tuple", ('invalid',)),
+            ("invalid_dict", {'layer1': 'invalid', 'layer2': 'invalid'})
+        ]
+        for invalid_input in invalid_inputs:
+            with self.subTest(invalid_input=invalid_input):
+                factory = ANNClassifierFactory(context)
+                with self.assertRaises(ValueError):
+                    factory.build_model(optimizer=invalid_input[1])
 
 if __name__ == '__main__':
     unittest.main()
