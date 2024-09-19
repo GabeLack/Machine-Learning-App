@@ -1,7 +1,5 @@
 from parameterized import parameterized
 import unittest
-from unittest.mock import MagicMock
-import numpy as np
 import pandas as pd
 
 from sklearn.preprocessing import StandardScaler, Normalizer, PolynomialFeatures, RobustScaler
@@ -14,6 +12,20 @@ from scikeras.wrappers import KerasRegressor
 from regressors import LinearFactory, ElasticNetFactory, SVRFactory, ANNRegressorFactory
 from context import ModelContext
 
+def invalid_param_grids():
+    return [
+        ("invalid_string", 'str'),
+        ("invalid_float", 1.23),
+        ("invalid_int", 123),
+        ("invalid_tuple", (1, 2, 3)),
+        ("invalid_list", [1, 2, 3]),
+        ("invalid_empty_dict", {})
+    ]
+
+def invalid_param_grids_for_fit():
+    return [
+        ("invalid_param_name", {'invalid_param': [1, 2, 3]})
+    ]
 
 class TestRegressors(unittest.TestCase):
 
@@ -46,28 +58,24 @@ class TestLinearFactory(TestRegressors):
         self.assertIsInstance(factory.model, GridSearchCV)
         self.assertIsInstance(factory.model.estimator.steps[1][1], RobustScaler)
 
-    def test_factory_str_paramgrid(self):
-        factory = LinearFactory(self.mock_context)
-        with self.assertRaises(ValueError):
-            factory.create_model(param_grid='invalid')
-
-    def test_factory_invalid_paramgrid(self):
-        factory = LinearFactory(self.mock_context)
-        invalid_param_grid = {'invalid_param': [1, 2, 3]}  # Invalid parameter name
-        factory.create_model(param_grid=invalid_param_grid)
-        with self.assertRaises(ValueError):
-            # This should raise an error because the pipeline should fail to fit the model
-            factory.model.fit(self.mock_context.X_train, self.mock_context.y_train)
-
-    def test_factory_empty_paramgrid(self):
-        factory = LinearFactory(self.mock_context)
-        factory.create_model(param_grid={})
-        self.assertIsInstance(factory.model, GridSearchCV)
-
     def test_factory_custom_paramgrid(self):
         factory = LinearFactory(self.mock_context)
         factory.create_model(param_grid={'polynomialfeatures__degree': [1, 2, 3]})
         self.assertIsInstance(factory.model, GridSearchCV)
+
+    @parameterized.expand(invalid_param_grids())
+    def test_factory_invalid_paramgrid(self, name, invalid_param_grid):
+        factory = LinearFactory(self.mock_context)
+        with self.assertRaises(ValueError):
+            factory.create_model(param_grid=invalid_param_grid)
+
+    @parameterized.expand(invalid_param_grids_for_fit())
+    def test_factory_paramgrid_for_fit(self, name, bad_param_grid):
+        factory = LinearFactory(self.mock_context)
+        factory.create_model(param_grid=bad_param_grid)
+        with self.assertRaises(ValueError):
+            # This should raise an error because the pipeline should fail to fit the model
+            factory.model.fit(self.mock_context.X_train, self.mock_context.y_train)
 
 
 class TestElasticNetFactory(TestRegressors):
@@ -92,32 +100,27 @@ class TestElasticNetFactory(TestRegressors):
         self.assertIsInstance(factory.model, GridSearchCV)
         self.assertIsInstance(factory.model.estimator.steps[1][1], RobustScaler)
 
-    def tes_factory_str_paramgrid(self):
-        factory = ElasticNetFactory(self.mock_context)
-        with self.assertRaises(ValueError):
-            factory.create_model(param_grid='invalid')
-
-    def test_factory_invalid_paramgrid(self):
-        factory = ElasticNetFactory(self.mock_context)
-        invalid_param_grid = {'invalid_param': [1, 2, 3]}  # Invalid parameter name
-        factory.create_model(param_grid=invalid_param_grid)
-        with self.assertRaises(ValueError):
-            # This should raise an error because the pipeline should fail to fit the model
-            factory.model.fit(self.mock_context.X_train, self.mock_context.y_train)
-
-    def test_factory_empty_paramgrid(self):
-        factory = ElasticNetFactory(self.mock_context)
-        factory.create_model(param_grid={})
-        self.assertIsInstance(factory.model, GridSearchCV)
-
     def test_factory_custom_paramgrid(self):
         factory = ElasticNetFactory(self.mock_context)
         factory.create_model(param_grid={'polynomialfeatures__degree': [1, 2, 3]})
         self.assertIsInstance(factory.model, GridSearchCV)
 
+    @parameterized.expand(invalid_param_grids())
+    def test_factory_invalid_paramgrid(self, name, invalid_param_grid):
+        factory = ElasticNetFactory(self.mock_context)
+        with self.assertRaises(ValueError):
+            factory.create_model(param_grid=invalid_param_grid)
+
+    @parameterized.expand(invalid_param_grids_for_fit())
+    def test_factory_paramgrid_for_fit(self, name, bad_param_grid):
+        factory = ElasticNetFactory(self.mock_context)
+        factory.create_model(param_grid=bad_param_grid)
+        with self.assertRaises(ValueError):
+            factory.model.fit(self.mock_context.X_train, self.mock_context.y_train)
+
 
 class TestSVRFactory(TestRegressors):
-    def testfactory(self):
+    def test_factory(self):
         factory = SVRFactory(self.mock_context)
         factory.create_model()
         self.assertIsInstance(factory.model, GridSearchCV)
@@ -138,49 +141,23 @@ class TestSVRFactory(TestRegressors):
         self.assertIsInstance(factory.model, GridSearchCV)
         self.assertIsInstance(factory.model.estimator.steps[1][1], RobustScaler)
 
-    def test_factory_str_paramgrid(self):
-        factory = SVRFactory(self.mock_context)
-        with self.assertRaises(ValueError):
-            factory.create_model(param_grid='invalid')
-
-    def test_factory_invalid_paramgrid(self):
-        factory = SVRFactory(self.mock_context)
-        invalid_param_grid = {'invalid_param': [1, 2, 3]}  # Invalid parameter name
-        factory.create_model(param_grid=invalid_param_grid)
-        with self.assertRaises(ValueError):
-            # This should raise an error because the pipeline should fail to fit the model
-            factory.model.fit(self.mock_context.X_train, self.mock_context.y_train)
-
-    def test_factory_empty_paramgrid(self):
-        factory = SVRFactory(self.mock_context)
-        factory.create_model(param_grid={})
-        self.assertIsInstance(factory.model, GridSearchCV)
-
     def test_factory_custom_paramgrid(self):
         factory = SVRFactory(self.mock_context)
         factory.create_model(param_grid={'polynomialfeatures__degree': [1, 2, 3]})
         self.assertIsInstance(factory.model, GridSearchCV)
 
+    @parameterized.expand(invalid_param_grids())
+    def test_factory_invalid_paramgrid(self, name, invalid_param_grid):
+        factory = SVRFactory(self.mock_context)
+        with self.assertRaises(ValueError):
+            factory.create_model(param_grid=invalid_param_grid)
 
-# Invalid inputs for testing
-def invalid_inputs():
-    return [
-        ("invalid_string", 'invalid'),
-        ("invalid_int", 123),
-        ("invalid_list", ['relu', 'relu']),
-        ("invalid_dict", {'layer1': 'relu', 'layer2': 'relu'}),
-        ("invalid_none", None)
-    ]
-
-# for ANNRegressorFactory
-def invalid_tuple_inputs():
-    return [
-        ("invalid_string_in_tuple", ('invalid',)),
-        ("invalid_float_in_tuple", (1.23,)),
-        ("invalid_list_in_tuple", ([64, 64],)),
-        ("invalid_dict_in_tuple", ({'layer1': 64},)),
-        ("invalid_none_in_tuple", (None,))
-    ]
+    @parameterized.expand(invalid_param_grids_for_fit())
+    def test_factory_paramgrid_for_fit(self, name, bad_param_grid):
+        factory = SVRFactory(self.mock_context)
+        factory.create_model(param_grid=bad_param_grid)
+        with self.assertRaises(ValueError):
+            factory.model.fit(self.mock_context.X_train, self.mock_context.y_train)
 
 
 class TestANNRegressorFactory(TestRegressors):
@@ -194,29 +171,26 @@ class TestANNRegressorFactory(TestRegressors):
         self.assertIsInstance(factory.model.estimator.steps[1][1], KerasRegressor)
         self.assertTrue(callable(factory.model.estimator.steps[1][1].build_fn))
 
-    def test_factory_str_paramgrid(self):
-        # scaler doesn't matter here so didnt bother replacing it
-        factory = ANNRegressorFactory(self.mock_context)
-        with self.assertRaises(ValueError):
-            factory.create_model(param_grid='invalid')
-
-    def test_factory_invalid_paramgrid(self):
-        factory = ANNRegressorFactory(self.mock_context)
-        invalid_param_grid = {'invalid_param': [1, 2, 3]}  # Invalid parameter name
-        factory.create_model(param_grid=invalid_param_grid)
-        with self.assertRaises(ValueError):
-            # This should raise an error because the pipeline should fail to fit the model
-            factory.model.fit(self.mock_context.X_train, self.mock_context.y_train)
-
-    def test_factory_empty_paramgrid(self):
-        factory = ANNRegressorFactory(self.mock_context)
-        factory.create_model(param_grid={})
-        self.assertIsInstance(factory.model, GridSearchCV)
-
     def test_factory_custom_paramgrid(self):
         factory = ANNRegressorFactory(self.mock_context)
         factory.create_model(param_grid={'polynomialfeatures__degree': [1, 2, 3]})
         self.assertIsInstance(factory.model, GridSearchCV)
+
+    @parameterized.expand(invalid_param_grids())
+    def test_factory_paramgrid(self, name, invalid_param_grid):
+        factory = ANNRegressorFactory(self.mock_context)
+        with self.assertRaises(ValueError):
+            factory.create_model(param_grid=invalid_param_grid)
+
+    @parameterized.expand([
+        ("invalid_param_name", {'invalid_param': [1, 2, 3]}),
+        ("invalid_none", None)
+    ])
+    def test_factory_paramgrid_for_fit(self, name, bad_param_grid):
+        factory = ANNRegressorFactory(self.mock_context)
+        factory.create_model(param_grid=bad_param_grid)
+        with self.assertRaises(ValueError):
+            factory.model.fit(self.mock_context.X_train, self.mock_context.y_train)
 
     def test_build_model(self):
         mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
@@ -244,7 +218,7 @@ class TestANNRegressorFactory(TestRegressors):
         ("invalid_dict", {'layer1': 64, 'layer2': 64}),
         ("invalid_none", None)
     ])
-    def test_build_model_invalid_neuron_layers(self, name, invalid_input):
+    def test_build_model_neuron_layers(self, name, invalid_input):
         # Only valid input is a tuple of integers
         mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
         factory = ANNRegressorFactory(mock_context)
@@ -258,7 +232,7 @@ class TestANNRegressorFactory(TestRegressors):
         ("invalid_dict_in_tuple", ({'layer1': 64},)),
         ("invalid_none_in_tuple", (None,))
     ])
-    def test_build_model_invalid_tuple_neuron_layers(self, name, invalid_input):
+    def test_build_model_tuple_neuron_layers(self, name, invalid_input):
         # Only the tuple input is tested here because the individual elements are tested in the previous test
         mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
         factory = ANNRegressorFactory(mock_context)
@@ -267,12 +241,12 @@ class TestANNRegressorFactory(TestRegressors):
 
     @parameterized.expand([
         ("invalid_string", 'invalid'),
-        ("invalid_int", 123),
+        ("invalid_int", 1),
         ("invalid_list", [0.2, 0.2]),
         ("invalid_dict", {'layer1': 0.2, 'layer2': 0.2}),
         ("invalid_none", None)
     ])
-    def test_build_model_invalid_dropout_layers(self, name, invalid_input):
+    def test_build_model_dropout_layers(self, name, invalid_input):
         # Only valid input is a tuple of floats
         mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
         factory = ANNRegressorFactory(mock_context)
@@ -281,12 +255,12 @@ class TestANNRegressorFactory(TestRegressors):
 
     @parameterized.expand([
         ("invalid_string_in_tuple", ('invalid',)),
-        ("invalid_int_in_tuple", (123,)),
+        ("invalid_int_in_tuple", (1,)),
         ("invalid_list_in_tuple", ([0.2, 0.2],)),
         ("invalid_dict_in_tuple", ({'layer1': 0.2},)),
         ("invalid_none_in_tuple", (None,))
     ])
-    def test_build_model_invalid_tuple_dropout_layers(self, name, invalid_input):
+    def test_build_model_tuple_dropout_layers(self, name, invalid_input):
         mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
         factory = ANNRegressorFactory(mock_context)
         with self.assertRaises(ValueError):
@@ -296,10 +270,9 @@ class TestANNRegressorFactory(TestRegressors):
         ("invalid_string", 'invalid'),
         ("invalid_int", 123),
         ("invalid_list", ['relu', 'relu']),
-        ("invalid_dict", {'layer1': 'relu', 'layer2': 'relu'}),
-        ("invalid_none", None)
+        ("invalid_dict", {'layer1': 'relu', 'layer2': 'relu'})
     ])
-    def test_build_model_invalid_activation(self, name, invalid_input)):
+    def test_build_model_activation(self, name, invalid_input):
         mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
         factory = ANNRegressorFactory(mock_context)
         with self.assertRaises(ValueError):
@@ -311,14 +284,14 @@ class TestANNRegressorFactory(TestRegressors):
         ("invalid_int", 123),
         ("invalid_list", ['invalid',]),
         ("invalid_tuple", ('invalid',)),
-        ("invalid_dict", {'layer1': 'invalid', 'layer2': 'invalid'}),
-        ("invalid_none", None)
-    def test_build_model_invalid_optimizer(self):
+        ("invalid_dict", {'layer1': 'invalid', 'layer2': 'invalid'})
+    ])
+    def test_build_model_optimizer(self, name, invalid_input):
         mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
         factory = ANNRegressorFactory(mock_context)
         with self.assertRaises(ValueError):
             # Invalid optimizer
-            model = factory.build_model(optimizer='invalid')
+            model = factory.build_model(optimizer=invalid_input)
 
 if __name__ == '__main__':
     unittest.main()

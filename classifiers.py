@@ -12,6 +12,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from scikeras.wrappers import KerasClassifier
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.optimizers import Optimizer # imported for validation
 
 from interfaces import MLClassifierInterface
 
@@ -34,8 +35,8 @@ class LogisticFactory(MLClassifierInterface):
         else: # use the polyfeatures-scaler-estimator pipeline in a gridsearch
             if param_grid is None: # use the default param_grid
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
@@ -67,8 +68,8 @@ class SVCFactory(MLClassifierInterface):
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
 
             pipeline = make_pipeline(
                 self.context.scaler,
@@ -98,8 +99,8 @@ class RandomForestFactory(MLClassifierInterface):
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
 
             pipeline = make_pipeline(
                 self.context.scaler,
@@ -129,8 +130,8 @@ class KNNFactory(MLClassifierInterface):
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
@@ -160,8 +161,8 @@ class GradientBoostingFactory(MLClassifierInterface):
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
 
             pipeline = make_pipeline(
                 self.context.scaler,
@@ -175,6 +176,7 @@ class GradientBoostingFactory(MLClassifierInterface):
                 cv=10,
                 scoring="accuracy"
             )
+
 
 class ANNClassifierFactory(MLClassifierInterface):
     #! This is a very heavy parameter grid
@@ -204,8 +206,8 @@ class ANNClassifierFactory(MLClassifierInterface):
         else:
             if param_grid is None:
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
 
             pipeline = make_pipeline(
                 self.context.scaler,
@@ -224,6 +226,14 @@ class ANNClassifierFactory(MLClassifierInterface):
                     dropout_layers: tuple = (0.2, 0.2),
                     activation: str = 'relu',
                     optimizer: str = 'adam') -> Sequential:
+        if not isinstance(neuron_layers, tuple) or any(not isinstance(layer, int) for layer in neuron_layers):
+            raise ValueError("neuron_layers must be a tuple of integers.")
+        if not isinstance(dropout_layers, tuple) or any(not isinstance(layer, float) for layer in dropout_layers):
+            raise ValueError("dropout_layers must be a tuple of floats.")
+        if not isinstance(optimizer, (str, Optimizer)):
+            raise ValueError("Optimizer must be a string or a Keras optimizer instance.")
+        # activation, and metrics are checked by Keras, they can also be non-string types
+
         model = Sequential()
         input_dim = self.context.X_train.shape[1]
         output_dim = self.context.y_train.shape[1]

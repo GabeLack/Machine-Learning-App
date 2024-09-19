@@ -9,6 +9,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense, Dropout
 from scikeras.wrappers import KerasRegressor
 from tensorflow.keras.callbacks import EarlyStopping
+from tensorflow.keras.optimizers import Optimizer # imported for validation
 
 from interfaces import MLRegressorInterface
 
@@ -24,8 +25,8 @@ class LinearFactory(MLRegressorInterface):
         else:  # use the polyfeatures-scaler-estimator pipeline in a gridsearch
             if param_grid is None:  # use the default param_grid
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
@@ -56,8 +57,8 @@ class ElasticNetFactory(MLRegressorInterface):
         else:
             if param_grid is None:  # use the default param_grid
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
@@ -89,8 +90,8 @@ class SVRFactory(MLRegressorInterface):
         else:
             if param_grid is None:  # use the default param_grid
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
 
             pipeline = make_pipeline(
                 PolynomialFeatures(include_bias=False),
@@ -105,6 +106,7 @@ class SVRFactory(MLRegressorInterface):
                 cv=10,
                 scoring="neg_mean_squared_error"
             )
+
 
 class ANNRegressorFactory(MLRegressorInterface):
     #! This is a very heavy parameter grid
@@ -134,8 +136,8 @@ class ANNRegressorFactory(MLRegressorInterface):
         else:
             if param_grid is None:  # use the default param_grid
                 param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict):
-                raise ValueError("param_grid must be a dictionary.")
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
             pipeline = make_pipeline(
                 self.context.scaler,
                 KerasRegressor(build_fn=self.build_model)
@@ -158,7 +160,9 @@ class ANNRegressorFactory(MLRegressorInterface):
             raise ValueError("neuron_layers must be a tuple of integers.")
         if not isinstance(dropout_layers, tuple) or any(not isinstance(layer, float) for layer in dropout_layers):
             raise ValueError("dropout_layers must be a tuple of floats.")
-        # optimizer, activation, and metrics are checked by Keras, they can also be non-string types
+        if not isinstance(optimizer, (str, Optimizer)):
+            raise ValueError("Optimizer must be a string or a Keras optimizer instance.")
+        # activation, and metrics are checked by Keras, they can also be non-string types
 
         model = Sequential()
         input_dim = self.context.X_train.shape[1]
