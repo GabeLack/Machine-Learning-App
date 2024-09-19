@@ -1,3 +1,4 @@
+from parameterized import parameterized
 import unittest
 from unittest.mock import MagicMock
 import numpy as np
@@ -12,6 +13,7 @@ from scikeras.wrappers import KerasRegressor
 
 from regressors import LinearFactory, ElasticNetFactory, SVRFactory, ANNRegressorFactory
 from context import ModelContext
+
 
 class TestRegressors(unittest.TestCase):
 
@@ -160,6 +162,27 @@ class TestSVRFactory(TestRegressors):
         self.assertIsInstance(factory.model, GridSearchCV)
 
 
+# Invalid inputs for testing
+def invalid_inputs():
+    return [
+        ("invalid_string", 'invalid'),
+        ("invalid_int", 123),
+        ("invalid_list", ['relu', 'relu']),
+        ("invalid_dict", {'layer1': 'relu', 'layer2': 'relu'}),
+        ("invalid_none", None)
+    ]
+
+# for ANNRegressorFactory
+def invalid_tuple_inputs():
+    return [
+        ("invalid_string_in_tuple", ('invalid',)),
+        ("invalid_float_in_tuple", (1.23,)),
+        ("invalid_list_in_tuple", ([64, 64],)),
+        ("invalid_dict_in_tuple", ({'layer1': 64},)),
+        ("invalid_none_in_tuple", (None,))
+    ]
+
+
 class TestANNRegressorFactory(TestRegressors):
     def test_regressor_factory(self):
         # Correct scaler for ANN is Normalizer
@@ -170,14 +193,6 @@ class TestANNRegressorFactory(TestRegressors):
         self.assertIsInstance(factory.model.estimator.steps[0][1], Normalizer)
         self.assertIsInstance(factory.model.estimator.steps[1][1], KerasRegressor)
         self.assertTrue(callable(factory.model.estimator.steps[1][1].build_fn))
-
-    def test_build_model(self):
-        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
-        factory = ANNRegressorFactory(mock_context)
-        model = factory.build_model()
-        self.assertIsInstance(model, Sequential)
-        self.assertEqual(len(model.layers), 5)  # 3 Dense layers and 2 Dropout layers
-        self.assertEqual(model.loss, 'mean_squared_error') # Default loss function
 
     def test_factory_str_paramgrid(self):
         # scaler doesn't matter here so didnt bother replacing it
@@ -202,6 +217,108 @@ class TestANNRegressorFactory(TestRegressors):
         factory = ANNRegressorFactory(self.mock_context)
         factory.create_model(param_grid={'polynomialfeatures__degree': [1, 2, 3]})
         self.assertIsInstance(factory.model, GridSearchCV)
+
+    def test_build_model(self):
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+        model = factory.build_model()
+        self.assertIsInstance(model, Sequential)
+        self.assertEqual(len(model.layers), 5)  # 4 Dense layers and 2 Dropout layers
+        self.assertEqual(model.loss, 'mean_squared_error') # Default loss function
+
+    def test_build_model_custom_params(self):
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+        model = factory.build_model(neuron_layers=(128, 64, 32),
+                                    dropout_layers=(0.1, 0.2, 0.3),
+                                    activation='tanh',
+                                    optimizer='rmsprop')
+        self.assertIsInstance(model, Sequential)
+        self.assertEqual(len(model.layers), 7)  # 4 Dense layers (including output) and 3 Dropout layers
+
+    @parameterized.expand([
+        ("invalid_string", 'invalid'),
+        ("invalid_int", 123),
+        ("invalid_float", 1.23),
+        ("invalid_list", [64, 64]),
+        ("invalid_dict", {'layer1': 64, 'layer2': 64}),
+        ("invalid_none", None)
+    ])
+    def test_build_model_invalid_neuron_layers(self, name, invalid_input):
+        # Only valid input is a tuple of integers
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+        with self.assertRaises(ValueError):
+            factory.build_model(neuron_layers=invalid_input)
+
+    @parameterized.expand([
+        ("invalid_string_in_tuple", ('invalid',)),
+        ("invalid_float_in_tuple", (1.23,)),
+        ("invalid_list_in_tuple", ([64, 64],)),
+        ("invalid_dict_in_tuple", ({'layer1': 64},)),
+        ("invalid_none_in_tuple", (None,))
+    ])
+    def test_build_model_invalid_tuple_neuron_layers(self, name, invalid_input):
+        # Only the tuple input is tested here because the individual elements are tested in the previous test
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+        with self.assertRaises(ValueError):
+            factory.build_model(neuron_layers=invalid_input)
+
+    @parameterized.expand([
+        ("invalid_string", 'invalid'),
+        ("invalid_int", 123),
+        ("invalid_list", [0.2, 0.2]),
+        ("invalid_dict", {'layer1': 0.2, 'layer2': 0.2}),
+        ("invalid_none", None)
+    ])
+    def test_build_model_invalid_dropout_layers(self, name, invalid_input):
+        # Only valid input is a tuple of floats
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+        with self.assertRaises(ValueError):
+            factory.build_model(dropout_layers=invalid_input)
+
+    @parameterized.expand([
+        ("invalid_string_in_tuple", ('invalid',)),
+        ("invalid_int_in_tuple", (123,)),
+        ("invalid_list_in_tuple", ([0.2, 0.2],)),
+        ("invalid_dict_in_tuple", ({'layer1': 0.2},)),
+        ("invalid_none_in_tuple", (None,))
+    ])
+    def test_build_model_invalid_tuple_dropout_layers(self, name, invalid_input):
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+        with self.assertRaises(ValueError):
+            factory.build_model(dropout_layers=invalid_input)
+
+    @parameterized.expand([
+        ("invalid_string", 'invalid'),
+        ("invalid_int", 123),
+        ("invalid_list", ['relu', 'relu']),
+        ("invalid_dict", {'layer1': 'relu', 'layer2': 'relu'}),
+        ("invalid_none", None)
+    ])
+    def test_build_model_invalid_activation(self, name, invalid_input)):
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+        with self.assertRaises(ValueError):
+            # Invalid activation function
+            model = factory.build_model(activation=invalid_input)
+
+    @parameterized.expand([
+        ("invalid_string", 'invalid'),
+        ("invalid_int", 123),
+        ("invalid_list", ['invalid',]),
+        ("invalid_tuple", ('invalid',)),
+        ("invalid_dict", {'layer1': 'invalid', 'layer2': 'invalid'}),
+        ("invalid_none", None)
+    def test_build_model_invalid_optimizer(self):
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+        with self.assertRaises(ValueError):
+            # Invalid optimizer
+            model = factory.build_model(optimizer='invalid')
 
 if __name__ == '__main__':
     unittest.main()

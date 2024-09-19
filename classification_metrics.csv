@@ -1,4 +1,0 @@
-type,refit time,precision,recall,f1 score,accuracy
-classifier,0.0032899379730224,0.3,0.5,0.375,0.6
-classifier,0.0019965171813964,0.3,0.5,0.375,0.6
-classifier,0.0035278797149658203,0.3,0.5,0.375,0.6

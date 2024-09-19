@@ -1,4 +1,5 @@
 import numpy as np
+
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import GridSearchCV
@@ -176,20 +177,25 @@ class GradientBoostingFactory(MLClassifierInterface):
             )
 
 class ANNClassifierFactory(MLClassifierInterface):
-    #! Used a new simpler approach rather than old KerasANN exam question
-    # I think it could theoritcally be coupled to that later?
-    # Albeit with a very heavy GridSearchCV 
+    #! This is a very heavy parameter grid
     default_param_grid = {
         'batch_size': [16, 32, 64],
         'epochs': [50, 100, 200],
         'optimizer': ['adam', 'rmsprop'],
-        'dropout_rate': [0.0, 0.2, 0.5],
-        'neurons': [32, 64, 128],
-        'output_activation': ['sigmoid', 'softmax'],
-        'metrics': [['accuracy'],
-                    ['accuracy', 'Precision'],
-                    ['accuracy', 'Recall'],
-                    ['accuracy', 'AUC']]
+        'neuron_layers': [ # shapes of the hidden layers
+            (64, 64, 64),  # rectangle
+            (32, 64, 128),  # expanding_triangle
+            (128, 64, 32),  # diminishing_triangle
+            (128, 32, 128),  # squeezed center
+            (32, 128, 32)  # enlarged center
+        ],
+        'dropout_layers': [
+            (0, 0, 0), # no dropout
+            (0.1, 0.1, 0.2),
+            (0.2, 0.2, 0.2),
+            (0.3, 0.3, 0.3),
+            (0.1, 0.2, 0.3)
+        ]
     }
 
     def create_model(self, param_grid: dict|None = None) -> None:
@@ -203,7 +209,7 @@ class ANNClassifierFactory(MLClassifierInterface):
 
             pipeline = make_pipeline(
                 self.context.scaler,
-                KerasClassifier(build_fn=self.build_model, )
+                KerasClassifier(build_fn=self.build_model)
             )
 
             self.model = GridSearchCV(
@@ -212,23 +218,62 @@ class ANNClassifierFactory(MLClassifierInterface):
                 n_jobs=4,
                 cv=10,
             )
-
+    
     def build_model(self,
-                    optimizer: str = 'adam',
-                    dropout_rate: float = 0.0,
-                    neurons: int = 64,
-                    output_activation: str = 'softmax',
-                    metrics: list[str] = ['accuracy']) -> Sequential:
+                    neuron_layers: tuple = (64, 64),
+                    dropout_layers: tuple = (0.2, 0.2),
+                    activation: str = 'relu',
+                    optimizer: str = 'adam') -> Sequential:
         model = Sequential()
-        model.add(Dense(neurons, input_dim=self.context.X_train.shape[1], activation='relu'))
-        model.add(Dropout(dropout_rate))
-        model.add(Dense(neurons, activation='relu'))
-        model.add(Dropout(dropout_rate))
-        model.add(Dense(self.context.y_train.shape[1], activation=output_activation))
-        loss = 'categorical_crossentropy' if output_activation == 'softmax' else 'binary_crossentropy'
-        model.compile(loss=loss, optimizer=optimizer, metrics=metrics)
+        input_dim = self.context.X_train.shape[1]
+        output_dim = self.context.y_train.shape[1]
+
+        # Determine if the task is binary or multi-class
+        num_classes = np.unique(self.context.y_train).shape[0]
+        if num_classes > 2:
+            output_activation = 'softmax'
+        else:
+            output_activation = 'sigmoid'
+
+        # Combine neuron and dropout layers
+        combined_layers = []
+        for neurons, dropout in zip(neuron_layers, dropout_layers):
+            combined_layers.append(neurons)
+            combined_layers.append(dropout)
+
+        # Add input layer
+        model.add(Dense(combined_layers[0], input_dim=input_dim, activation=activation))
+
+        # Add hidden layers
+        for i in combined_layers[1:]:
+            if i > 0:
+                try: # Use error managemant in Dense to raise error further.
+                    model.add(Dense(i, activation=activation))
+                except Exception as e:
+                    raise ValueError(f"An error occurred (layer): {e}") from e
+            elif 0 <= i < 1: # dropout layer, cannot be i<=1.
+                model.add(Dropout(i))
+            else:
+                raise ValueError(f"error in layer construction, invalid layer value: {i}\n" +\
+                    f"value {i} should be a positive integer or float between 0 and 1.")
+
+        # Add output layer
+        model.add(Dense(output_dim, activation=output_activation))
+
+        # Determine loss function based on output activation
+        if output_activation == 'softmax':
+            loss = 'categorical_crossentropy'
+        elif output_activation == 'sigmoid':
+            loss = 'binary_crossentropy'
+        else:
+            raise ValueError(f"Invalid output activation: {output_activation}. Must be 'softmax' or 'sigmoid'.")
+
+        try: # Try to compile the model
+            model.compile(loss=loss, optimizer=optimizer)
+        except ValueError as e:
+            raise ValueError(f"Error compiling model: {e}") from e
         return model
 
     def train_model(self) -> None:
-        early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
+        early_stopping = EarlyStopping(monitor='val_accuracy', patience=10, restore_best_weights=True)
         self.model.fit(self.X_train, self.y_train, callbacks=[early_stopping])
