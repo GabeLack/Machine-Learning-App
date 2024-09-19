@@ -234,8 +234,9 @@ class TestKNNFactory(TestClassifiers):
         factory = KNNFactory(context)
         factory.create_model()
         self.assertIsInstance(factory.model, GridSearchCV)
-        self.assertIsInstance(factory.model.estimator.steps[0][1], StandardScaler)
-        self.assertIsInstance(factory.model.estimator.steps[1][1], KNeighborsClassifier)
+        self.assertIsInstance(factory.model.estimator.steps[0][1], PolynomialFeatures)
+        self.assertIsInstance(factory.model.estimator.steps[1][1], StandardScaler)
+        self.assertIsInstance(factory.model.estimator.steps[-1][1], KNeighborsClassifier)
 
     @parameterized.expand(contexts())
     def test_create_model_no_pipeline(self, name, context):
@@ -250,7 +251,7 @@ class TestKNNFactory(TestClassifiers):
         factory = KNNFactory(diff_scaler_context)
         factory.create_model()
         self.assertIsInstance(factory.model, GridSearchCV)
-        self.assertIsInstance(factory.model.estimator.steps[0][1], RobustScaler)
+        self.assertIsInstance(factory.model.estimator.steps[1][1], RobustScaler)
 
     @parameterized.expand(contexts())
     def test_create_model_custom_paramgrid(self, name, context):
