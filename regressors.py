@@ -172,7 +172,6 @@ class ANNRegressorFactory(MLRegressorInterface):
         for neurons, dropout in zip(neuron_layers, dropout_layers):
             combined_layers.append(neurons)
             combined_layers.append(dropout)
-        print(combined_layers)
 
         # Add input layer
         model.add(Dense(combined_layers[0], input_dim=input_dim, activation=activation))

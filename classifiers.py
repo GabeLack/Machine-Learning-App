@@ -236,14 +236,14 @@ class ANNClassifierFactory(MLClassifierInterface):
 
         model = Sequential()
         input_dim = self.context.X_train.shape[1]
-        output_dim = self.context.y_train.shape[1]
 
-        # Determine if the task is binary or multi-class
-        num_classes = np.unique(self.context.y_train).shape[0]
+        num_classes = len(set(self.context.y_train))
         if num_classes > 2:
             output_activation = 'softmax'
+            output_dim = num_classes
         else:
             output_activation = 'sigmoid'
+            output_dim = 1
 
         # Combine neuron and dropout layers
         combined_layers = []
@@ -256,7 +256,7 @@ class ANNClassifierFactory(MLClassifierInterface):
 
         # Add hidden layers
         for i in combined_layers[1:]:
-            if i > 0:
+            if i >= 1:
                 try: # Use error managemant in Dense to raise error further.
                     model.add(Dense(i, activation=activation))
                 except Exception as e:
