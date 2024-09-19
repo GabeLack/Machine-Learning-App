@@ -50,6 +50,7 @@ class TestClassifiers(unittest.TestCase):
         self.df_multi_classification = pd.read_csv('test_csv/multi_classification_data.csv')
         self.multi_context = ModelContext(self.df_multi_classification, 'target')
 
+
 class TestLogisticFactory(TestClassifiers):
     @parameterized.expand(contexts())
     def test_create_model(self, name, context):
