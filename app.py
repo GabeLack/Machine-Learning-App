@@ -3,12 +3,14 @@ from tkinter import filedialog, messagebox, ttk
 from joblib import dump
 import pandas as pd
 import matplotlib.pyplot as plt
+import copy
 
 from plotting import Plotting
 from context import ModelContext
 from factory import ModelFactory, ModelType, ProblemType
 
-#TODO import Normalizer scalar for ANN models?
+from sklearn.preprocessing import Normalizer
+
 
 class MLApp:
     plots = []  # To store all plots
@@ -152,23 +154,28 @@ class MLApp:
             self.output_text.insert(tk.END, "Please select data type, file path, and target column.\n")
 
     def get_models(self, context):
+        context_ann = copy.deepcopy(context)
+        context_ann.scaler = Normalizer()
         factory = ModelFactory()
         if self.data_type.get() == "regression":
             return [
                 factory.create_model(ModelType.LINEAR, ProblemType.REGRESSION, context),
                 factory.create_model(ModelType.ELASTICNET, ProblemType.REGRESSION, context),
                 factory.create_model(ModelType.SVR, ProblemType.REGRESSION, context),
-                factory.create_model(ModelType.ANNREGRESSOR, ProblemType.REGRESSION, context)
+                factory.create_model(ModelType.ANNREGRESSOR, ProblemType.REGRESSION, context_ann)
             ]
-        else:
+        elif self.data_type.get() == "classification":
             return [
                 factory.create_model(ModelType.LOGISTIC, ProblemType.CLASSIFICATION, context),
                 factory.create_model(ModelType.SVC, ProblemType.CLASSIFICATION, context),
                 factory.create_model(ModelType.RANDOMFOREST, ProblemType.CLASSIFICATION, context),
                 factory.create_model(ModelType.KNEARESTNEIGHBORS, ProblemType.CLASSIFICATION, context),
                 factory.create_model(ModelType.GRADIENTBOOSTING, ProblemType.CLASSIFICATION, context),
-                factory.create_model(ModelType.ANNCLASSIFIER, ProblemType.CLASSIFICATION, context)
+                factory.create_model(ModelType.ANNCLASSIFIER, ProblemType.CLASSIFICATION, context_ann)
             ]
+        else:
+            # Shouldn't be possible to reach this point, however just in case
+            raise ValueError("Invalid data type selected.")
 
     def train_models(self):
         # Train the models

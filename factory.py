@@ -5,32 +5,12 @@ from regressors import LinearFactory, ElasticNetFactory, SVRFactory, ANNRegresso
 from context import ModelContext
 
 class ProblemType(Enum):
-    """Enum class representing different types of machine learning problems.
-
-    Attributes:
-        CLASSIFICATION (auto): Represents a classification problem where the goal is to predict discrete labels.
-        REGRESSION (auto): Represents a regression problem where the goal is to predict continuous values.
-    """
     
     CLASSIFICATION = auto()
     REGRESSION = auto()
 
 
 class ModelType(Enum):
-    """ModelType is an enumeration that defines various types of machine learning models.
-
-    Attributes:
-        LOGISTIC (auto): Logistic Regression classifier.
-        SVC (auto): Support Vector Classifier.
-        RANDOMFOREST (auto): Random Forest classifier.
-        KNEARESTNEIGHBORS (auto): K-Nearest Neighbors classifier.
-        GRADIENTBOOSTING (auto): Gradient Boosting classifier.
-        ANNCLASSIFIER (auto): Artificial Neural Network classifier.
-        LINEAR (auto): Linear Regression model.
-        ELASTICNET (auto): Elastic Net regression model.
-        SVR (auto): Support Vector Regressor.
-        ANNREGRESSOR (auto): Artificial Neural Network regressor.
-    """
 
     # Classifiers
     LOGISTIC = auto()
@@ -51,18 +31,6 @@ class ModelFactory:
                      model_type: ModelType,
                      problem_type: ProblemType,
                      model_context: ModelContext) -> object:
-        """Creates and returns a machine learning model based on the specified model, problem, and context.
-        
-        Parameters:
-        model_type (ModelType): The type of model to create (e.g., LOGISTIC, SVC, etc.).
-        problem_type (ProblemType): The type of problem to solve (e.g., CLASSIFICATION, REGRESSION).
-        model_context (ModelContext): The context in which the model will be used, providing necessary 
-        configuration and data.
-        Returns:
-        object: An instance of the created model factory, which has already created the model.
-        Raises:
-        ValueError: If an invalid model type or problem type is provided.
-        """
 
         if problem_type == ProblemType.CLASSIFICATION:
             if model_type == ModelType.LOGISTIC:
