@@ -92,6 +92,30 @@ class MLApp:
         else:
             tk.messagebox.showerror("Error", "Please select a CSV file first.")
 
+    def get_models(self, context):
+        context_ann = copy.deepcopy(context)
+        context_ann.scaler = Normalizer()
+        factory = ModelFactory()
+        if self.data_type.get() == "regression":
+            return [
+                factory.create_model(ModelType.LINEAR, ProblemType.REGRESSION, context),
+                factory.create_model(ModelType.ELASTICNET, ProblemType.REGRESSION, context),
+                factory.create_model(ModelType.SVR, ProblemType.REGRESSION, context),
+                factory.create_model(ModelType.ANNREGRESSOR, ProblemType.REGRESSION, context_ann)
+            ]
+        elif self.data_type.get() == "classification":
+            return [
+                factory.create_model(ModelType.LOGISTIC, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.SVC, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.RANDOMFOREST, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.KNEARESTNEIGHBORS, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.GRADIENTBOOSTING, ProblemType.CLASSIFICATION, context),
+                factory.create_model(ModelType.ANNCLASSIFIER, ProblemType.CLASSIFICATION, context_ann)
+            ]
+        else:
+            # Shouldn't be possible to reach this point, however just in case
+            raise ValueError("Invalid data type selected.")
+
     def initialize_models(self):
         # Validate and initialize models
         if self.data_type.get() and self.file_path.get() and self.target_column.get():
@@ -152,30 +176,6 @@ class MLApp:
             self.output_text.insert(tk.END, "Models initialized successfully.\n")
         else:
             self.output_text.insert(tk.END, "Please select data type, file path, and target column.\n")
-
-    def get_models(self, context):
-        context_ann = copy.deepcopy(context)
-        context_ann.scaler = Normalizer()
-        factory = ModelFactory()
-        if self.data_type.get() == "regression":
-            return [
-                factory.create_model(ModelType.LINEAR, ProblemType.REGRESSION, context),
-                factory.create_model(ModelType.ELASTICNET, ProblemType.REGRESSION, context),
-                factory.create_model(ModelType.SVR, ProblemType.REGRESSION, context),
-                factory.create_model(ModelType.ANNREGRESSOR, ProblemType.REGRESSION, context_ann)
-            ]
-        elif self.data_type.get() == "classification":
-            return [
-                factory.create_model(ModelType.LOGISTIC, ProblemType.CLASSIFICATION, context),
-                factory.create_model(ModelType.SVC, ProblemType.CLASSIFICATION, context),
-                factory.create_model(ModelType.RANDOMFOREST, ProblemType.CLASSIFICATION, context),
-                factory.create_model(ModelType.KNEARESTNEIGHBORS, ProblemType.CLASSIFICATION, context),
-                factory.create_model(ModelType.GRADIENTBOOSTING, ProblemType.CLASSIFICATION, context),
-                factory.create_model(ModelType.ANNCLASSIFIER, ProblemType.CLASSIFICATION, context_ann)
-            ]
-        else:
-            # Shouldn't be possible to reach this point, however just in case
-            raise ValueError("Invalid data type selected.")
 
     def train_models(self):
         # Train the models

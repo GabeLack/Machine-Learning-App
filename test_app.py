@@ -20,8 +20,8 @@ class TestMLApp(unittest.TestCase):
         self.df_regression = pd.read_csv('test_csv/regression_data.csv')
         self.df_regression_missing = pd.read_csv('test_csv/regression_missing_data.csv')
         self.df_multi_class = pd.read_csv('test_csv/multi_classification_data.csv')
-        self.df_binary_class = pd.read_csv('test_csv/classification_object_data.csv')
-        self.df_object_class = pd.read_csv('test_csv/binary_classification_data.csv')
+        self.df_binary_class = pd.read_csv('test_csv/binary_classification_data.csv')
+        self.df_object_class = pd.read_csv('test_csv/classification_object_data.csv')
 
     @patch.object(MLApp, 'create_widgets', MagicMock())
     def test_init(self):
@@ -187,7 +187,98 @@ class TestMLApp(unittest.TestCase):
         self.assertFalse(hasattr(app, 'context'))
         self.assertIn("Please select data type, file path, and target column.\n", app.output_text.get("1.0", tk.END))
 
+    @patch('app.pd.read_csv')
+    @patch('app.tk.messagebox.askquestion')
+    def test_initialize_models_missing_values_yes(self, mock_askquestion, mock_read_csv):
+        # Mock the read_csv to return the DataFrame with missing values
+        mock_read_csv.return_value = self.df_regression_missing
+        # Mock the askquestion to return 'yes'
+        mock_askquestion.return_value = 'yes'
+        
+        # Create an instance of the application
+        app = MLApp()
+        app.data_type.set('regression')
+        app.file_path.set('test_csv/regression_missing_data.csv')
+        app.target_column.set('target')
 
+        # Create a copy of the DataFrame with missing values for comparison
+        df_comparison = self.df_regression_missing.copy()
+        
+        # Call the initialize_models method
+        app.initialize_models()
+
+        # Verify that the missing values were handled and models initialized
+        self.assertIn("Models initialized successfully.\n", app.output_text.get("1.0", tk.END))
+        self.assertIsNotNone(app.context)
+        self.assertTrue(len(app.context.df) < len(df_comparison)) # Check that missing values were removed
+
+    @patch('app.pd.read_csv')
+    @patch('app.tk.messagebox.askquestion')
+    @patch('app.MLApp.browse_file')
+    def test_initialize_models_missing_values_no(self, mock_browse_file, mock_askquestion, mock_read_csv):
+        # Mock the read_csv to return the DataFrame with missing values initially
+        mock_read_csv.return_value = self.df_regression_missing
+        # Mock the askquestion to return 'no'
+        mock_askquestion.return_value = 'no'
+        
+        # Create an instance of the application
+        app = MLApp()
+        app.data_type.set('regression')
+        app.file_path.set('test_csv/regression_missing_data.csv')
+        app.target_column.set('target')
+        
+        # Call the initialize_models method
+        app.initialize_models()
+        
+        # Verify that browse_file is called to replace the DataFrame with missing values
+        mock_browse_file.assert_called_once()
+
+    @patch('app.pd.read_csv')
+    @patch('app.tk.messagebox.askquestion')
+    def test_initialize_models_object_values_yes(self, mock_askquestion, mock_read_csv):
+        # Mock the read_csv to return the DataFrame with object values
+        mock_read_csv.return_value = self.df_object_class
+        # Mock the askquestion to return 'yes'
+        mock_askquestion.return_value = 'yes'
+
+        # Create an instance of the application
+        app = MLApp()
+        app.data_type.set('classification')
+        app.file_path.set('test_csv/classification_object_data.csv')
+        app.target_column.set('target')
+
+        # Create a copy of the DataFrame with object values for comparison
+        df_comparison = self.df_object_class.copy()
+
+        # Call the initialize_models method
+        app.initialize_models()
+        
+        # Verify that the object values were handled and models initialized
+        self.assertIn("Models initialized successfully.\n", app.output_text.get("1.0", tk.END))
+        self.assertIsNotNone(app.context)
+        # Check that object values were encoded
+        self.assertTrue(len(app.context.df.columns) > len(df_comparison.columns))
+
+    @patch('app.pd.read_csv')
+    @patch('app.tk.messagebox.askquestion')
+    @patch('app.MLApp.browse_file')
+    def test_initialize_models_object_values_no(self, mock_browse_file, mock_askquestion, mock_read_csv):
+        # Mock the read_csv to return the DataFrame with object values
+        mock_read_csv.return_value = self.df_object_class
+        # Mock the askquestion to return 'no'
+        mock_askquestion.return_value = 'no'
+        
+        # Create an instance of the application
+        app = MLApp()
+        app.data_type.set('classification')
+        app.file_path.set('test_csv/classification_object_data.csv')
+        app.target_column.set('target')
+        
+        # Call the initialize_models method
+        app.initialize_models()
+        
+        # Verify that browse_file is called to replace the DataFrame with object values
+        mock_browse_file.assert_called_once()
 
     @patch('app.dump')
     @patch('app.filedialog.asksaveasfilename')
