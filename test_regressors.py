@@ -1,5 +1,6 @@
 from parameterized import parameterized
 import unittest
+from unittest.mock import patch, PropertyMock
 import pandas as pd
 
 from sklearn.preprocessing import StandardScaler, Normalizer, PolynomialFeatures, RobustScaler
@@ -7,6 +8,7 @@ from sklearn.linear_model import LinearRegression, ElasticNet
 from sklearn.model_selection import GridSearchCV
 from sklearn.svm import SVR
 from tensorflow.keras.models import Sequential
+from tensorflow.keras.callbacks import EarlyStopping
 from scikeras.wrappers import KerasRegressor
 
 from regressors import LinearFactory, ElasticNetFactory, SVRFactory, ANNRegressorFactory
@@ -292,6 +294,43 @@ class TestANNRegressorFactory(TestRegressors):
         with self.assertRaises(ValueError):
             # Invalid optimizer
             model = factory.build_model(optimizer=invalid_input)
+
+    def test_train_model(self):
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+
+        # Smaller param grid for faster testing
+        small_param_grid = {
+            'kerasregressor__batch_size': [16],
+            'kerasregressor__epochs': [10],
+            'kerasregressor__optimizer': ['adam'],
+            'kerasregressor__neuron_layers': [(32, 32)],
+            'kerasregressor__dropout_layers': [(0.1, 0.1)]
+        }
+        factory.create_model(param_grid=small_param_grid)
+
+        factory.train_model()
+        self.assertTrue(hasattr(factory, 'model'))
+        # Check if the model's best parameters and best score are not None after training
+        self.assertIsNotNone(factory.model.best_params_)
+        self.assertIsNotNone(factory.model.best_score_)
+
+    def test_train_model_callback(self):
+        mock_context = ModelContext(self.df_regression, 'target', scaler=Normalizer())
+        factory = ANNRegressorFactory(mock_context)
+        factory.create_model()
+        
+        with patch.object(factory.model, 'fit', return_value=None) as mock_fit:
+            factory.train_model()
+
+            # Check if the EarlyStopping callback is present
+            mock_fit.assert_called_once()
+            args, kwargs = mock_fit.call_args
+            callbacks = kwargs.get('callbacks', [])
+            self.assertTrue(
+                any(isinstance(cb, EarlyStopping) for cb in callbacks),
+                "EarlyStopping callback not found in callbacks"
+            )
 
 if __name__ == '__main__':
     unittest.main()
