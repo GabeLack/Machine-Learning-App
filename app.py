@@ -221,16 +221,18 @@ class MLApp:
             metrics_str = metrics_df.to_string(index=False)
             self.output_text.insert(tk.END, f"{metrics_str}\n")
 
+            plots = []
+
             # Specific plots based on data type
             if self.data_type.get() == "regression":
                 fig = Plotting.plot_residuals(self.context.y_test, self.factories, self.predictions)
-                self.plots.append(fig)
+                plots.append(fig)
             else:
                 fig = Plotting.plot_confusion_matrix(self.context.y_test, self.factories, self.predictions)
-                self.plots.append(fig)
+                plots.append(fig)
             self.progress_bar.step(25)
 
-            for fig in self.plots:
+            for fig in plots:
                 fig.show()
 
             self.output_text.insert(tk.END, "Results plotted successfully.\n")
@@ -241,17 +243,20 @@ class MLApp:
         self.progress_bar.stop()
 
     def get_best_type(self) -> str:
-        # Get the best model type based on the data type
-        metrics_filename = "metrics.csv"
-        metrics_df = pd.read_csv(metrics_filename)  # Read the metrics from the CSV file
+        if hasattr(self, 'factories'):
+            # Get the best model type based on the data type
+            metrics_filename = "metrics.csv"
+            metrics_df = pd.read_csv(metrics_filename)  # Read the metrics from the CSV file
 
-        # Determine the best model based on the data type
-        if self.data_type.get() == "regression":
-            best_model = metrics_df.loc[metrics_df['r2'].idxmax()]
+            # Determine the best model based on the data type
+            if self.data_type.get() == "regression":
+                best_model = metrics_df.loc[metrics_df['r2'].idxmax()]
+            else:
+                best_model = metrics_df.loc[metrics_df['accuracy'].idxmax()]
+
+            return best_model['type']
         else:
-            best_model = metrics_df.loc[metrics_df['accuracy'].idxmax()]
-
-        return best_model['type']
+            self.output_text.insert(tk.END, "Please initialize models first.\n")
 
     def get_best_params(self, model_name: str) -> dict:
         # Get the best hyperparameters for a specific model
