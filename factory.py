@@ -1,3 +1,27 @@
+"""
+NAME
+    factory
+
+DESCRIPTION
+    This module provides classes for creating machine learning models using a factory pattern.
+    It includes enums for problem types and model types, and a factory class for creating models.
+
+CLASSES
+    ProblemType
+        Enum representing the type of problem (classification or regression).
+
+    ModelType
+        Enum representing the type of model to be created.
+
+    ModelFactory
+        Factory class for creating machine learning models.
+
+        Methods defined here:
+        
+        create_model(self, model_type: ModelType, problem_type: ProblemType, model_context: ModelContext) -> object
+            Creates a machine learning model based on the specified type and context.
+"""
+
 from enum import Enum, auto
 from classifiers import (LogisticFactory, SVCFactory, RandomForestFactory, 
                          KNNFactory, GradientBoostingFactory, ANNClassifierFactory)
@@ -5,13 +29,35 @@ from regressors import LinearFactory, ElasticNetFactory, SVRFactory, ANNRegresso
 from context import ModelContext
 
 class ProblemType(Enum):
+    """
+    Enum representing the type of problem (classification or regression).
+    
+    Attributes:
+        CLASSIFICATION: Represents a classification problem.
+        REGRESSION: Represents a regression problem.
+    """
     
     CLASSIFICATION = auto()
     REGRESSION = auto()
 
 
 class ModelType(Enum):
-
+    """
+    Enum representing the type of model to be created.
+    
+    Attributes:
+        LOGISTIC: Represents a logistic regression model.
+        SVC: Represents a support vector classifier.
+        RANDOMFOREST: Represents a random forest classifier.
+        KNEARESTNEIGHBORS: Represents a k-nearest neighbors classifier.
+        GRADIENTBOOSTING: Represents a gradient boosting classifier.
+        ANNCLASSIFIER: Represents an artificial neural network classifier.
+        LINEAR: Represents a linear regression model.
+        ELASTICNET: Represents an elastic net regression model.
+        SVR: Represents a support vector regressor.
+        ANNREGRESSOR: Represents an artificial neural network regressor.
+    """
+    
     # Classifiers
     LOGISTIC = auto()
     SVC = auto()
@@ -27,11 +73,32 @@ class ModelType(Enum):
 
 
 class ModelFactory:
+    """
+    Factory class for creating machine learning models.
+    
+    Methods:
+        create_model: Creates a machine learning model based on the specified type and context.
+    """
+    
     def create_model(self,
                      model_type: ModelType,
                      problem_type: ProblemType,
                      model_context: ModelContext) -> object:
-
+        """
+        Creates a machine learning model based on the specified type and context.
+        
+        Args:
+            model_type (ModelType): The type of model to create.
+            problem_type (ProblemType): The type of problem (classification or regression).
+            model_context (ModelContext): The context in which the model will be created.
+        
+        Returns:
+            object: An instance of the created model.
+        
+        Raises:
+            ValueError: If an invalid model type or problem type is specified.
+        """
+        
         if problem_type == ProblemType.CLASSIFICATION:
             if model_type == ModelType.LOGISTIC:
                 logistic = LogisticFactory(model_context)
