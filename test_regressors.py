@@ -314,6 +314,10 @@ class TestANNRegressorFactory(TestRegressors):
         #! havn't even bothered dealing with it yet. Not enough time to fix the bug, even if it's
         #! right there.
         
+        # this test somehow passed now, after putting the build_model method in a method of its own so
+        # it remains a callable (yet I can still send in input_dim). By all rights it should've worked
+        # when it was part of the ANNRegressorFactory class too, but it didn't, so whatever, now it works.
+        
         factory.train_model()
         self.assertTrue(hasattr(factory, 'model'))
         # Check if the model's best parameters and best score are not None after training

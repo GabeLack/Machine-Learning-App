@@ -276,7 +276,7 @@ class ANNRegressorFactory(MLRegressorInterface):
             pipeline = make_pipeline(
                 self.context.scaler,
                 KerasRegressor(
-                    build_fn=self.build_model,
+                    build_fn=build_model_factory(self.context.X_train.shape[1]),
                     neuron_layers=(64, 64),
                     dropout_layers=(0.2, 0.2)
                 )
@@ -290,8 +290,8 @@ class ANNRegressorFactory(MLRegressorInterface):
                 scoring="neg_mean_squared_error"
             )
 
-    def build_model(self,
-                    neuron_layers: tuple[int] = (64, 64),
+def build_model_factory(input_dim: int):
+    def build_model(neuron_layers: tuple[int] = (64, 64),
                     dropout_layers: tuple[float] = (0.2, 0.2),
                     activation: str = 'relu',
                     optimizer: str = 'adam') -> Sequential:
@@ -321,7 +321,6 @@ class ANNRegressorFactory(MLRegressorInterface):
         # activation, and metrics are checked by Keras, they can also be non-string types
 
         model = Sequential()
-        input_dim = self.context.X_train.shape[1]
 
         # Combine neuron and dropout layers
         combined_layers = []
@@ -354,3 +353,5 @@ class ANNRegressorFactory(MLRegressorInterface):
         except ValueError as e:
             raise ValueError(f"Error compiling model: {e}") from e
         return model
+
+    return build_model
