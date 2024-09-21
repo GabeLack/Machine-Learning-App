@@ -236,9 +236,8 @@ class ANNRegressorFactory(MLRegressorInterface):
     
     #! This is a very heavy parameter grid
     default_param_grid = {
-        'kerasregressor__batch_size': [16, 32, 64],
         'kerasregressor__epochs': [50, 100, 200],
-        'kerasregressor__optimizer': ['adam', 'rmsprop'],
+        'kerasregressor__batch_size': [16, 32, 64],
         'kerasregressor__neuron_layers': [ # shapes of the hidden layers
             (64, 64, 64),  # rectangle
             (32, 64, 128),  # expanding_triangle
@@ -252,7 +251,8 @@ class ANNRegressorFactory(MLRegressorInterface):
             (0.2, 0.2, 0.2),
             (0.3, 0.3, 0.3),
             (0.1, 0.2, 0.3)
-        ]
+        ],
+        'kerasregressor__optimizer': ['adam', 'rmsprop']
     }
 
     def create_model(self, param_grid: dict|None = None) -> None:
@@ -272,9 +272,14 @@ class ANNRegressorFactory(MLRegressorInterface):
                 param_grid = self.default_param_grid
             if not isinstance(param_grid, dict) or not param_grid:
                 raise ValueError("param_grid must be a non-empty dictionary.")
+            
             pipeline = make_pipeline(
                 self.context.scaler,
-                KerasRegressor(build_fn=self.build_model)
+                KerasRegressor(
+                    build_fn=self.build_model,
+                    neuron_layers=(64, 64),
+                    dropout_layers=(0.2, 0.2)
+                )
             )
 
             self.model = GridSearchCV(
@@ -289,8 +294,7 @@ class ANNRegressorFactory(MLRegressorInterface):
                     neuron_layers: tuple[int] = (64, 64),
                     dropout_layers: tuple[float] = (0.2, 0.2),
                     activation: str = 'relu',
-                    optimizer: str = 'adam',
-                    **kwargs) -> Sequential:
+                    optimizer: str = 'adam') -> Sequential:
         """
         Builds a Sequential ANN model with the specified parameters.
         
@@ -350,13 +354,3 @@ class ANNRegressorFactory(MLRegressorInterface):
         except ValueError as e:
             raise ValueError(f"Error compiling model: {e}") from e
         return model
-
-    def train_model(self) -> None:
-        """
-        Trains the ANN model with early stopping.
-        
-        Returns:
-            None
-        """
-        early_stopping = EarlyStopping(monitor='val_loss', patience=10, restore_best_weights=True)
-        self.model.fit(self.X_train, self.y_train, callbacks=[early_stopping])
