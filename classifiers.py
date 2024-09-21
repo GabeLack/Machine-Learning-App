@@ -1,21 +1,16 @@
 import numpy as np
 
 from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import OneHotEncoder, PolynomialFeatures
 from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout
 from scikeras.wrappers import KerasClassifier
-from tensorflow.keras.callbacks import EarlyStopping
-from tensorflow.keras.optimizers import Optimizer # imported for validation
 
 from interfaces import MLClassifierInterface
-
+from build_model import build_model_factory # to get callable build_model function
 
 class LogisticFactory(MLClassifierInterface):
     default_param_grid = {
@@ -181,17 +176,17 @@ class GradientBoostingFactory(MLClassifierInterface):
 class ANNClassifierFactory(MLClassifierInterface):
     #! This is a very heavy parameter grid
     default_param_grid = {
-        'batch_size': [16, 32, 64],
-        'epochs': [50, 100, 200],
-        'optimizer': ['adam', 'rmsprop'],
-        'neuron_layers': [ # shapes of the hidden layers
+        'kerasclassifier__batch_size': [16, 32, 64],
+        'kerasclassifier__epochs': [50, 100, 200],
+        'kerasclassifier__optimizer': ['adam', 'rmsprop'],
+        'kerasclassifier__neuron_layers': [ # shapes of the hidden layers
             (64, 64, 64),  # rectangle
             (32, 64, 128),  # expanding_triangle
             (128, 64, 32),  # diminishing_triangle
             (128, 32, 128),  # squeezed center
             (32, 128, 32)  # enlarged center
         ],
-        'dropout_layers': [
+        'kerasclassifier__dropout_layers': [
             (0, 0, 0), # no dropout
             (0.1, 0.1, 0.2),
             (0.2, 0.2, 0.2),
@@ -201,42 +196,9 @@ class ANNClassifierFactory(MLClassifierInterface):
     }
 
     def create_model(self, param_grid: dict|None = None) -> None:
-        if self.context.is_pipeline is False:
-            self.model = KerasClassifier(build_fn=self.build_model)
-        else:
-            if param_grid is None:
-                param_grid = self.default_param_grid
-            if not isinstance(param_grid, dict) or not param_grid:
-                raise ValueError("param_grid must be a non-empty dictionary.")
-
-            pipeline = make_pipeline(
-                self.context.scaler,
-                KerasClassifier(build_fn=self.build_model)
-            )
-
-            self.model = GridSearchCV(
-                pipeline,
-                param_grid,
-                n_jobs=4,
-                cv=10,
-            )
-    
-    def build_model(self,
-                    neuron_layers: tuple = (64, 64),
-                    dropout_layers: tuple = (0.2, 0.2),
-                    activation: str = 'relu',
-                    optimizer: str = 'adam') -> Sequential:
-        if not isinstance(neuron_layers, tuple) or any(not isinstance(layer, int) for layer in neuron_layers):
-            raise ValueError("neuron_layers must be a tuple of integers.")
-        if not isinstance(dropout_layers, tuple) or any(not isinstance(layer, float) for layer in dropout_layers):
-            raise ValueError("dropout_layers must be a tuple of floats.")
-        if not isinstance(optimizer, (str, Optimizer)):
-            raise ValueError("Optimizer must be a string or a Keras optimizer instance.")
-        # activation, and metrics are checked by Keras, they can also be non-string types
-
-        model = Sequential()
+        # Get the input and output dimensions
         input_dim = self.context.X_train.shape[1]
-
+        # Check if the output layer should be a softmax or sigmoid
         num_classes = len(set(self.context.y_train))
         if num_classes > 2:
             output_activation = 'softmax'
@@ -245,45 +207,27 @@ class ANNClassifierFactory(MLClassifierInterface):
             output_activation = 'sigmoid'
             output_dim = 1
 
-        # Combine neuron and dropout layers
-        combined_layers = []
-        for neurons, dropout in zip(neuron_layers, dropout_layers):
-            combined_layers.append(neurons)
-            combined_layers.append(dropout)
-
-        # Add input layer
-        model.add(Dense(combined_layers[0], input_dim=input_dim, activation=activation))
-
-        # Add hidden layers
-        for i in combined_layers[1:]:
-            if i >= 1:
-                try: # Use error managemant in Dense to raise error further.
-                    model.add(Dense(i, activation=activation))
-                except Exception as e:
-                    raise ValueError(f"An error occurred (layer): {e}") from e
-            elif 0 <= i < 1: # dropout layer, cannot be i<=1.
-                model.add(Dropout(i))
-            else:
-                raise ValueError(f"error in layer construction, invalid layer value: {i}\n" +\
-                    f"value {i} should be a positive integer or float between 0 and 1.")
-
-        # Add output layer
-        model.add(Dense(output_dim, activation=output_activation))
-
-        # Determine loss function based on output activation
-        if output_activation == 'softmax':
-            loss = 'categorical_crossentropy'
-        elif output_activation == 'sigmoid':
-            loss = 'binary_crossentropy'
+        if self.context.is_pipeline is False:
+            self.model = KerasClassifier(build_fn=build_model_factory(input_dim, output_activation, output_dim))
         else:
-            raise ValueError(f"Invalid output activation: {output_activation}. Must be 'softmax' or 'sigmoid'.")
+            if param_grid is None:  # use the default param_grid
+                param_grid = self.default_param_grid
+            if not isinstance(param_grid, dict) or not param_grid:
+                raise ValueError("param_grid must be a non-empty dictionary.")
+            
+            pipeline = make_pipeline(
+                self.context.scaler,
+                KerasClassifier(
+                    build_fn=build_model_factory(input_dim, output_activation, output_dim),
+                    neuron_layers=(64, 64), # just so param_grid can be used, these specific inputs are not used
+                    dropout_layers=(0.2, 0.2)
+                )
+            )
 
-        try: # Try to compile the model
-            model.compile(loss=loss, optimizer=optimizer)
-        except ValueError as e:
-            raise ValueError(f"Error compiling model: {e}") from e
-        return model
-
-    def train_model(self) -> None:
-        early_stopping = EarlyStopping(monitor='val_accuracy', patience=10, restore_best_weights=True)
-        self.model.fit(self.X_train, self.y_train, callbacks=[early_stopping])
+            self.model = GridSearchCV(
+                pipeline,
+                param_grid,
+                n_jobs=4,
+                cv=10,
+                scoring="neg_mean_squared_error"
+            )
