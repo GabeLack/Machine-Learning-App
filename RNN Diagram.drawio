@@ -1,6 +1,6 @@
 <mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0" version="24.8.3">
   <diagram name="Page-1" id="im4f84TJx31p4GjBVJc7">
-    <mxGraphModel dx="2304" dy="1260" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1885" dy="1031" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -37,7 +37,7 @@
         <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-30" source="ZpfbbZLWPoLLmUBdWNGZ-31" target="ZpfbbZLWPoLLmUBdWNGZ-32">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-31" value="Scale test/train or full data" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-30">
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-31" value="Scale test/train or full data" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-30">
           <mxGeometry x="20.5" y="40" width="159" height="34" as="geometry" />
         </mxCell>
         <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-45" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-30" source="ZpfbbZLWPoLLmUBdWNGZ-32" target="ZpfbbZLWPoLLmUBdWNGZ-35">
@@ -49,16 +49,22 @@
         <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-35" value="Return generator(s)" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-30">
           <mxGeometry x="20.5" y="160" width="159" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-36" value="Data Processing" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-36" value="Model Evaluation" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
           <mxGeometry x="250" y="230" width="200" height="210" as="geometry" />
         </mxCell>
-        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-37" value="Scale test/train or full data" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-36">
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-72" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-36" source="ZpfbbZLWPoLLmUBdWNGZ-37" target="ZpfbbZLWPoLLmUBdWNGZ-38">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-37" value="Input: train, test, &amp; pred data/generators" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-36">
           <mxGeometry x="20.5" y="40" width="159" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-38" value="TimeSeriesGenerator for test/train or full" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-36">
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-71" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-36" source="ZpfbbZLWPoLLmUBdWNGZ-38" target="ZpfbbZLWPoLLmUBdWNGZ-39">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-38" value="log metrics" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-36">
           <mxGeometry x="20.5" y="100" width="159" height="34" as="geometry" />
         </mxCell>
-        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-39" value="Return generator(s)" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-36">
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-39" value="log &amp; plot pred w. test" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-36">
           <mxGeometry x="20.5" y="160" width="159" height="34" as="geometry" />
         </mxCell>
         <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-47" value="Hyper-Parameter Tuning" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
@@ -97,7 +103,7 @@
             <mxPoint x="100" y="194" as="sourcePoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-63" value="Re-Training" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-63" value="Daily Training" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
           <mxGeometry x="930" y="10" width="200" height="430" as="geometry" />
         </mxCell>
         <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-64" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-63" target="ZpfbbZLWPoLLmUBdWNGZ-67">
@@ -111,6 +117,45 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-68" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-63" target="ZpfbbZLWPoLLmUBdWNGZ-70">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="99.99999999999955" y="194" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-74" value="Metrics Comparison" style="swimlane;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="10" y="290" width="200" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-75" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-74" source="ZpfbbZLWPoLLmUBdWNGZ-76" target="ZpfbbZLWPoLLmUBdWNGZ-78">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-76" value="Compare with best saved metrics" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-74">
+          <mxGeometry x="20.5" y="40" width="159" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-77" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-74" source="ZpfbbZLWPoLLmUBdWNGZ-78" target="ZpfbbZLWPoLLmUBdWNGZ-79">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-78" value="If better, save as new best" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-74">
+          <mxGeometry x="20.5" y="100" width="159" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-79" value="if worse beyond x-percent, raise re-training trigger" style="rounded=1;whiteSpace=wrap;arcSize=50;strokeWidth=2;" vertex="1" parent="ZpfbbZLWPoLLmUBdWNGZ-74">
+          <mxGeometry x="20.5" y="160" width="159" height="34" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-81" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;curved=1;" edge="1" parent="1" source="ZpfbbZLWPoLLmUBdWNGZ-38" target="ZpfbbZLWPoLLmUBdWNGZ-74">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-82" value="Weekly Re-Training" style="swimlane;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="1141" y="10" width="200" height="430" as="geometry" />
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-83" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-82">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="99.99999999999955" y="74" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-84" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-82">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="99.99999999999955" y="134" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ZpfbbZLWPoLLmUBdWNGZ-85" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="ZpfbbZLWPoLLmUBdWNGZ-82">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="99.99999999999955" y="194" as="sourcePoint" />
           </mxGeometry>
